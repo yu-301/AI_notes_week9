@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>術語表｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <main class="wrap">
+    <a class="back" href="index.html">← 回目錄</a>
+    <header class="site-head topic-head">
+      <h1>術語表</h1>
+      <p>所有主題頁出現過的縮寫，依英文字母排序，點出處可回到原頁面。</p>
+    </header>
+
+    <dl class="glossary">
+      <!-- TERMS:START -->
+      <div class="term">
+        <dt id="term-5g-guti">5G-GUTI <span class="term-full">5G Globally Unique Temporary Identifier</span></dt>
+        <dd>網路分配的臨時身分，日常通訊用它取代永久身分。<a href="pages/suci-supi-concealment.html">出處：SUPI 隱藏與 SUCI</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-ecies">ECIES <span class="term-full">Elliptic Curve Integrated Encryption Scheme</span></dt>
+        <dd>先用 ECDH 算共享金鑰、再用對稱加密保護資料的混合加密法。<a href="pages/suci-supi-concealment.html">出處：SUPI 隱藏與 SUCI</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-sidf">SIDF <span class="term-full">Subscription Identifier De-concealing Function</span></dt>
+        <dd>位在 UDM 內、持有私鑰，負責把 SUCI 解回 SUPI。<a href="pages/suci-supi-concealment.html">出處：SUPI 隱藏與 SUCI</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-suci">SUCI <span class="term-full">Subscription Concealed Identifier</span></dt>
+        <dd>SUPI 加密後的版本，可安全地在空中介面傳送。<a href="pages/suci-supi-concealment.html">出處：SUPI 隱藏與 SUCI</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-supi">SUPI <span class="term-full">Subscription Permanent Identifier</span></dt>
+        <dd>用戶永久身分，常見格式為 IMSI。<a href="pages/suci-supi-concealment.html">出處：SUPI 隱藏與 SUCI</a></dd>
+      </div>
+      <!-- TERMS:END -->
+    </dl>
+  </main>
+</body>
+</html>
