@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>5G 金鑰階層與金鑰推導｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="wrap topic">
+    <a class="back" href="../index.html">← 回目錄</a>
+
+    <header class="topic-head">
+      <span class="topic-clause">§6.2</span>
+      <h1>5G 金鑰階層與金鑰推導</h1>
+      <p class="topic-summary">從長期金鑰 K 一層層推導出 NAS、RRC、UP 各自的金鑰，每一層只交給需要它的網元。</p>
+      <p class="topic-meta">TS 33.501 Rel-18｜更新於 <time datetime="2026-11-03">2026-11-03</time></p>
+      <p class="topic-links"><a href="../slides/key-hierarchy.html">看簡報版</a></p>
+    </header>
+
+    <h2>為什麼需要</h2>
+    <p>認證完成後，手機要和很多網元建立安全通道：和 AMF 保護 NAS 訊息、和基地台保護 RRC 訊息與使用者資料。如果大家共用同一把金鑰，只要其中一個網元（例如放在路邊的基地台）被攻破，所有通道都會一起失守，長期金鑰也可能跟著外洩。</p>
+    <p>解法是<strong>金鑰分離</strong>：長期金鑰 K 只留在 USIM 和 home network 的 ARPF，其他金鑰都用單向的金鑰推導函數（Key Derivation Function，KDF）一層層往下推，每一層只交給需要它的網元。拿到下層金鑰，推不回上層金鑰。</p>
+    <p>4G 也有類似的階層，核心是 K<sub>ASME</sub>。5G 在上面多加了 K<sub>AUSF</sub> 和 K<sub>SEAF</sub> 兩層：home network 自己保留 K<sub>AUSF</sub>，服務網路拿到的錨點金鑰 K<sub>SEAF</sub> 綁定服務網路名稱，而且和 4G 的 K<sub>ASME</sub> 在密碼學上是分開的（§6.1.1.3）。</p>
+
+    <h2>關鍵名詞</h2>
+    <dl class="terms">
+      <dt>K <span class="term-full">Long-term Key</span></dt>
+      <dd>USIM 和 ARPF 共享的長期金鑰，長度 128 或 256 bits；只在 ARPF 的安全環境裡處理（§6.2.2.1）。</dd>
+      <dt>KDF <span class="term-full">Key Derivation Function</span></dt>
+      <dd>單向的金鑰推導函數。5GC 的所有推導都用 TS 33.220 Annex B.2.0 定義的 KDF，每種用途用不同的 FC 值區分（Annex A.1）。</dd>
+      <dt>K<sub>AUSF</sub> / K<sub>SEAF</sub> <span class="term-full">Key for AUSF / Key for SEAF</span></dt>
+      <dd>K<sub>AUSF</sub> 留在 home network 的 AUSF；K<sub>SEAF</sub> 是由它推出、交給服務網路的錨點金鑰（anchor key）。</dd>
+      <dt>K<sub>AMF</sub> <span class="term-full">Key for AMF</span></dt>
+      <dd>AMF 手上的根金鑰，NAS 金鑰、K<sub>gNB</sub>、K<sub>N3IWF</sub> 都從它推出。</dd>
+      <dt>K<sub>NASint</sub> / K<sub>NASenc</sub> <span class="term-full">NAS integrity key / NAS encryption key</span></dt>
+      <dd>保護 UE 與 AMF 之間 NAS 訊號的完整性金鑰與加密金鑰。</dd>
+      <dt>K<sub>gNB</sub> <span class="term-full">Key for gNB</span></dt>
+      <dd>基地台的根金鑰，RRC 與 UP 金鑰都從它推出；ng-eNB 把它當成 K<sub>eNB</sub> 使用。</dd>
+      <dt>K<sub>RRCint</sub> / K<sub>RRCenc</sub> / K<sub>UPint</sub> / K<sub>UPenc</sub> <span class="term-full">RRC / UP integrity and encryption keys</span></dt>
+      <dd>保護 UE 與 gNB 之間 RRC 訊號和使用者資料（UP）的金鑰。</dd>
+      <dt>NH <span class="term-full">Next Hop</span></dt>
+      <dd>由 AMF 推出的中間金鑰，換手時用來產生新的 K<sub>gNB</sub>，提供前向安全（forward security）。</dd>
+      <dt>K<sub>N3IWF</sub> <span class="term-full">Key for N3IWF</span></dt>
+      <dd>非 3GPP 接取用的金鑰，N3IWF 把它當作和 UE 跑 IKEv2 的 MSK。</dd>
+      <dt>ngKSI <span class="term-full">Key Set Identifier in 5G</span></dt>
+      <dd>K<sub>AMF</sub> 的編號，讓 UE 和 AMF 不必重新認證就能指認同一組安全上下文（§6.2.3.2）。</dd>
+    </dl>
+
+    <div class="table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr><th>金鑰</th><th>由什麼推導</th><th>網路端由誰推導</th><th>推導函數</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>CK、IK（CK'、IK'）</td><td>K</td><td>ARPF（UE 端為 USIM）</td><td>TS 33.102；CK'、IK' 為 Annex A.3</td></tr>
+          <tr><td>K<sub>AUSF</sub></td><td>5G-AKA：CK||IK + 服務網路名稱；EAP-AKA'：CK'、IK' 推出的 EMSK</td><td>5G-AKA：ARPF；EAP-AKA'：AUSF</td><td>Annex A.2（5G-AKA）</td></tr>
+          <tr><td>K<sub>SEAF</sub></td><td>K<sub>AUSF</sub> + 服務網路名稱</td><td>AUSF</td><td>Annex A.6</td></tr>
+          <tr><td>K<sub>AMF</sub></td><td>K<sub>SEAF</sub> + SUPI + ABBA</td><td>SEAF</td><td>Annex A.7</td></tr>
+          <tr><td>K<sub>NASint</sub>、K<sub>NASenc</sub></td><td>K<sub>AMF</sub> + 演算法類型 + 演算法 ID</td><td>AMF</td><td>Annex A.8</td></tr>
+          <tr><td>K<sub>gNB</sub></td><td>K<sub>AMF</sub> + uplink NAS COUNT + 接取類型 0x01</td><td>AMF</td><td>Annex A.9</td></tr>
+          <tr><td>K<sub>N3IWF</sub></td><td>K<sub>AMF</sub> + uplink NAS COUNT + 接取類型 0x02</td><td>AMF</td><td>Annex A.9</td></tr>
+          <tr><td>NH</td><td>K<sub>AMF</sub> + 新推出的 K<sub>gNB</sub>（之後改用前一個 NH）</td><td>AMF</td><td>Annex A.10</td></tr>
+          <tr><td>K<sub>RRCint</sub>、K<sub>RRCenc</sub>、K<sub>UPint</sub>、K<sub>UPenc</sub></td><td>K<sub>gNB</sub> + 演算法類型 + 演算法 ID</td><td>gNB</td><td>Annex A.8</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>運作流程</h2>
+    <ol class="flow">
+      <li><span class="actor">ARPF / USIM</span>雙方各自保存同一把 K。認證時由 K 產生 CK、IK；若用 EAP-AKA'，ARPF 再把它們轉成 CK'、IK'。</li>
+      <li><span class="actor">ARPF 或 AUSF</span>5G-AKA 由 ARPF 推出 K<sub>AUSF</sub>，放在 5G HE AV 裡交給 AUSF；EAP-AKA' 則由 AUSF 從 CK'、IK' 推出。AUSF 可依業者政策保存最新的 K<sub>AUSF</sub>。</li>
+      <li><span class="actor">AUSF</span>由 K<sub>AUSF</sub> 推出錨點金鑰 K<sub>SEAF</sub>，認證成功後交給服務網路的 SEAF。</li>
+      <li><span class="actor">SEAF</span>認證一結束就由 K<sub>SEAF</sub> 推出 K<sub>AMF</sub> 交給 AMF，接著刪除 K<sub>SEAF</sub>。K<sub>SEAF</sub> 永遠不會傳出 SEAF。</li>
+      <li><span class="actor">AMF</span>由 K<sub>AMF</sub> 推出 K<sub>NASint</sub>、K<sub>NASenc</sub>，透過 NAS Security Mode Command 啟用（§6.7.2）。</li>
+      <li><span class="actor">AMF</span>由 K<sub>AMF</sub> 與 uplink NAS COUNT 推出 K<sub>gNB</sub>（3GPP 接取）或 K<sub>N3IWF</sub>（非 3GPP 接取）。K<sub>gNB</sub> 和 NH（附上 NCC）交給 gNB，K<sub>N3IWF</sub> 交給 N3IWF。</li>
+      <li><span class="actor">gNB</span>由 K<sub>gNB</sub> 推出 K<sub>RRCint</sub>、K<sub>RRCenc</sub>、K<sub>UPint</sub>、K<sub>UPenc</sub>，透過 AS Security Mode Command 啟用（§6.7.4）。</li>
+      <li><span class="actor">UE（USIM + ME）</span>網路端的每一把金鑰，UE 都有對應的一把：USIM 由 K 產生 CK、IK，ME 推出其餘所有金鑰。USIM 支援 5G 參數儲存時，K<sub>AUSF</sub>、K<sub>SEAF</sub>、K<sub>AMF</sub> 存在 USIM，否則存在 ME 的非揮發性記憶體。</li>
+    </ol>
+
+    <h2>白話解釋</h2>
+    <aside class="plain">
+      <p>想像一棟大樓的鑰匙系統。總鑰匙（K）鎖在總公司保險箱和你的 SIM 卡裡，從不外借。總公司用它刻出一把總公司鑰匙（K<sub>AUSF</sub>），再刻一把分公司大門鑰匙（K<sub>SEAF</sub>、K<sub>AMF</sub>）交給分公司。</p>
+      <p>分公司再替各部門刻專用門卡：NAS 一張、基地台一張（K<sub>gNB</sub>），基地台又替 RRC 和使用者資料各刻加密卡與驗證卡。刻鑰匙的方法是單向的，撿到部門門卡也刻不回大門鑰匙，所以一個部門出事不會連累整棟樓。</p>
+    </aside>
+
+    <h2>常見考點</h2>
+    <ul class="exam">
+      <li><strong>為什麼要分這麼多層金鑰？</strong>金鑰分離：KDF 是單向的，下層金鑰外洩推不回上層，不同用途也互不影響。長期金鑰 K 只在 USIM 和 ARPF，服務網路只拿得到 K<sub>SEAF</sub> 以下的金鑰。</li>
+      <li><strong>K<sub>AUSF</sub> 在 5G-AKA 和 EAP-AKA' 中由誰推導？</strong>5G-AKA 由 ARPF 從 CK、IK 推導後交給 AUSF；EAP-AKA' 由 AUSF 從 CK'、IK' 推導。UE 端都由 ME 推導（§6.2.1）。</li>
+      <li><strong>SEAF 怎麼處理 K<sub>SEAF</sub>？</strong>只在 SEAF 內使用、不傳給任何其他實體；推出 K<sub>AMF</sub> 後就刪除。每次認證都會產生新的 K<sub>SEAF</sub> 和 K<sub>AMF</sub>（§6.2.2.1）。</li>
+      <li><strong>同一把 K<sub>AMF</sub> 怎麼推出兩把不同的 NAS 金鑰？</strong>輸入不同的演算法類型區分值（N-NAS-enc-alg 為 0x01、N-NAS-int-alg 為 0x02）和演算法 ID，再取輸出的低位元當金鑰（Annex A.8）。</li>
+      <li><strong>K<sub>gNB</sub> 和 K<sub>N3IWF</sub> 的推導差在哪？</strong>用同一個函數（Annex A.9），輸入都是 K<sub>AMF</sub> 和 uplink NAS COUNT，只差在接取類型區分值：3GPP 為 0x01、非 3GPP 為 0x02。</li>
+      <li><strong>ngKSI 是什麼？值為 '111' 代表什麼？</strong>ngKSI 是 K<sub>AMF</sub> 的識別碼，分 native 和 mapped 兩種，值有 3 bits。'111' 保留給 UE 表示「沒有可用的 K<sub>AMF</sub>」，網路收到後可以重新認證（§6.2.3.2、§6.2.3.3）。</li>
+      <li><strong>K<sub>AMF</sub> 什麼時候會重新產生？</strong>主要認證、NAS 金鑰 re-keying、NAS 金鑰 refresh，以及與 EPS 互通的程序（§6.2.3.3）。</li>
+    </ul>
+
+    <h2>參考條文</h2>
+    <ul class="refs">
+      <li>TS 33.501 §6.2.1：Key hierarchy（本頁主題）</li>
+      <li>TS 33.501 §6.2.2：Key derivation and distribution scheme（網路端與 UE 端各自持有的金鑰）</li>
+      <li>TS 33.501 §6.2.3：Handling of user-related keys（金鑰設定、ngKSI、金鑰生命週期）</li>
+      <li>TS 33.501 §6.1.1.3：Granularity of anchor key binding to serving network</li>
+      <li>TS 33.501 §6.7.2、§6.7.4：NAS／AS security mode command procedure</li>
+      <li>TS 33.501 Annex A.1、A.2、A.6–A.10：KDF 介面與各金鑰的推導函數</li>
+      <li>TS 33.220 Annex B.2.0：5GC 使用的 KDF</li>
+      <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§6.1.1.3、§6.2、Annex A）</li>
+    </ul>
+  </main>
+</body>
+</html>

@@ -64,12 +64,32 @@
         <dd>標準答案 XRES* 的雜湊值，讓 SEAF 初步比對卻拿不到答案。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
       </div>
       <div class="term">
+        <dt id="term-kamf">K<sub>AMF</sub> <span class="term-full">Key for AMF</span></dt>
+        <dd>AMF 的根金鑰，由 K<sub>SEAF</sub> 推出，NAS 金鑰與 K<sub>gNB</sub> 都從它推導。<a href="pages/key-hierarchy.html">出處：5G 金鑰階層與金鑰推導</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-kausf">K<sub>AUSF</sub> <span class="term-full">Key for AUSF</span></dt>
         <dd>由 CK、IK 推導出、存放在 AUSF 的金鑰，是 K<sub>SEAF</sub> 的上一層。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
       </div>
       <div class="term">
+        <dt id="term-kdf">KDF <span class="term-full">Key Derivation Function</span></dt>
+        <dd>單向的金鑰推導函數，下層金鑰推不回上層金鑰。<a href="pages/key-hierarchy.html">出處：5G 金鑰階層與金鑰推導</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-kgnb">K<sub>gNB</sub> <span class="term-full">Key for gNB</span></dt>
+        <dd>基地台的根金鑰，由 K<sub>AMF</sub> 推出，再推導出 RRC 與 UP 金鑰。<a href="pages/key-hierarchy.html">出處：5G 金鑰階層與金鑰推導</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-kseaf">K<sub>SEAF</sub> <span class="term-full">Key for SEAF</span></dt>
         <dd>服務網路的錨點金鑰，認證成功後才交給 SEAF，再推導出 K<sub>AMF</sub>。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-ngksi">ngKSI <span class="term-full">Key Set Identifier in 5G</span></dt>
+        <dd>K<sub>AMF</sub> 的識別碼，讓 UE 與 AMF 不用重新認證就能指認安全上下文。<a href="pages/key-hierarchy.html">出處：5G 金鑰階層與金鑰推導</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-nh">NH <span class="term-full">Next Hop</span></dt>
+        <dd>AMF 推出的中間金鑰，換手時用來產生新的 K<sub>gNB</sub>，提供前向安全。<a href="pages/key-hierarchy.html">出處：5G 金鑰階層與金鑰推導</a></dd>
       </div>
       <div class="term">
         <dt id="term-rand">RAND <span class="term-full">Random Challenge</span></dt>
