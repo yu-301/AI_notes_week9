@@ -18,3 +18,7 @@
 ## [2026-11-03] edit | 首頁目錄加入文字版／簡報版入口
 - 更新 index.html：每個主題同時提供「文字版」「簡報版」連結
 - 更新 assets/style.css、CLAUDE.md / AGENTS.md 第 5 節的目錄項目格式
+
+## [2026-11-03] add | §6.1.3.2 5G-AKA 認證
+- 新增 pages/5g-aka.html、slides/5g-aka.html
+- 更新 index.html、glossary.html（新增術語：5G-AKA、ARPF、AUSF、AUTN、HXRES*、KAUSF、KSEAF、RAND、RES*、SEAF、UDM）

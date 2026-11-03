@@ -20,12 +20,52 @@
     <dl class="glossary">
       <!-- TERMS:START -->
       <div class="term">
+        <dt id="term-5g-aka">5G-AKA <span class="term-full">5G Authentication and Key Agreement</span></dt>
+        <dd>5G 的主要認證方法之一，最終由 home network 確認認證結果。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-5g-guti">5G-GUTI <span class="term-full">5G Globally Unique Temporary Identifier</span></dt>
         <dd>網路分配的臨時身分，日常通訊用它取代永久身分。<a href="pages/suci-supi-concealment.html">出處：SUPI 隱藏與 SUCI</a></dd>
       </div>
       <div class="term">
+        <dt id="term-arpf">ARPF <span class="term-full">Authentication credential Repository and Processing Function</span></dt>
+        <dd>位在 UDM 裡，保存長期金鑰 K 並產生認證向量。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-ausf">AUSF <span class="term-full">Authentication Server Function</span></dt>
+        <dd>home network 的認證伺服器，負責最終比對手機回應。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-autn">AUTN <span class="term-full">Authentication Token</span></dt>
+        <dd>讓 USIM 確認考題來自 home network 且不是舊的。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-ecies">ECIES <span class="term-full">Elliptic Curve Integrated Encryption Scheme</span></dt>
         <dd>先用 ECDH 算共享金鑰、再用對稱加密保護資料的混合加密法。<a href="pages/suci-supi-concealment.html">出處：SUPI 隱藏與 SUCI</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-hxres-star">HXRES* <span class="term-full">Hash of XRES*</span></dt>
+        <dd>標準答案 XRES* 的雜湊值，讓 SEAF 初步比對卻拿不到答案。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-kausf">K<sub>AUSF</sub> <span class="term-full">Key for AUSF</span></dt>
+        <dd>由 CK、IK 推導出、存放在 AUSF 的金鑰，是 K<sub>SEAF</sub> 的上一層。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-kseaf">K<sub>SEAF</sub> <span class="term-full">Key for SEAF</span></dt>
+        <dd>服務網路的錨點金鑰，認證成功後才交給 SEAF，再推導出 K<sub>AMF</sub>。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-rand">RAND <span class="term-full">Random Challenge</span></dt>
+        <dd>網路出給手機的隨機考題。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-res-star">RES* <span class="term-full">Response</span></dt>
+        <dd>手機由 RES 與服務網路名稱推導出的答案，對應的標準答案是 XRES*。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-seaf">SEAF <span class="term-full">Security Anchor Function</span></dt>
+        <dd>位在 AMF 裡，向手機發起認證並初步比對答案。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
       </div>
       <div class="term">
         <dt id="term-sidf">SIDF <span class="term-full">Subscription Identifier De-concealing Function</span></dt>
@@ -38,6 +78,10 @@
       <div class="term">
         <dt id="term-supi">SUPI <span class="term-full">Subscription Permanent Identifier</span></dt>
         <dd>用戶永久身分，常見格式為 IMSI。<a href="pages/suci-supi-concealment.html">出處：SUPI 隱藏與 SUCI</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-udm">UDM <span class="term-full">Unified Data Management</span></dt>
+        <dd>home network 的用戶資料中心，內含 ARPF 與 SIDF。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
       </div>
       <!-- TERMS:END -->
     </dl>
