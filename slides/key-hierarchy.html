@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>5G 金鑰階層與金鑰推導（簡報）｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="deck">
+    <section class="slide slide-cover">
+      <span class="topic-clause">§6.2</span>
+      <h1>5G 金鑰階層與金鑰推導</h1>
+      <p class="topic-summary">從長期金鑰 K 一層層推導出 NAS、RRC、UP 各自的金鑰，每一層只交給需要它的網元。</p>
+    </section>
+
+    <section class="slide">
+      <h2>為什麼需要</h2>
+      <ul>
+        <li>手機要和 AMF、基地台等多個網元各自建立安全通道</li>
+        <li>共用一把金鑰：一個網元被攻破，所有通道一起失守</li>
+        <li><strong>金鑰分離</strong>：K 只在 USIM 與 ARPF，其餘用單向 KDF 往下推</li>
+        <li>5G 比 4G 多了 K<sub>AUSF</sub>、K<sub>SEAF</sub> 兩層，錨點金鑰綁定服務網路</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>關鍵名詞</h2>
+      <dl class="terms">
+        <dt>K <span class="term-full">Long-term Key</span></dt>
+        <dd>只在 USIM 與 ARPF 的長期金鑰</dd>
+        <dt>KDF <span class="term-full">Key Derivation Function</span></dt>
+        <dd>單向推導，推不回上層</dd>
+        <dt>K<sub>SEAF</sub> <span class="term-full">Key for SEAF</span></dt>
+        <dd>交給服務網路的錨點金鑰</dd>
+        <dt>K<sub>AMF</sub> <span class="term-full">Key for AMF</span></dt>
+        <dd>NAS 與基地台金鑰的根</dd>
+        <dt>K<sub>gNB</sub> <span class="term-full">Key for gNB</span></dt>
+        <dd>RRC 與 UP 金鑰的根</dd>
+      </dl>
+    </section>
+
+    <section class="slide">
+      <h2>金鑰推導一覽</h2>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>金鑰</th><th>由什麼推導</th><th>誰推導</th><th>函數</th></tr></thead>
+          <tbody>
+            <tr><td>CK、IK（CK'、IK'）</td><td>K</td><td>ARPF</td><td>A.3（CK'、IK'）</td></tr>
+            <tr><td>K<sub>AUSF</sub></td><td>CK||IK 或 EMSK</td><td>ARPF／AUSF</td><td>A.2（5G-AKA）</td></tr>
+            <tr><td>K<sub>SEAF</sub></td><td>K<sub>AUSF</sub> + SN name</td><td>AUSF</td><td>A.6</td></tr>
+            <tr><td>K<sub>AMF</sub></td><td>K<sub>SEAF</sub> + SUPI + ABBA</td><td>SEAF</td><td>A.7</td></tr>
+            <tr><td>K<sub>NASint/enc</sub></td><td>K<sub>AMF</sub> + 演算法</td><td>AMF</td><td>A.8</td></tr>
+            <tr><td>K<sub>gNB</sub>／K<sub>N3IWF</sub></td><td>K<sub>AMF</sub> + NAS COUNT + 0x01／0x02</td><td>AMF</td><td>A.9</td></tr>
+            <tr><td>NH</td><td>K<sub>AMF</sub> + K<sub>gNB</sub>／前一個 NH</td><td>AMF</td><td>A.10</td></tr>
+            <tr><td>K<sub>RRC</sub>、K<sub>UP</sub></td><td>K<sub>gNB</sub> + 演算法</td><td>gNB</td><td>A.8</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（1/2）：認證產生的金鑰</h2>
+      <ol class="flow">
+        <li><span class="actor">ARPF / USIM</span>各自保存 K，認證時產生 CK、IK（或 CK'、IK'）</li>
+        <li><span class="actor">ARPF 或 AUSF</span>推出 K<sub>AUSF</sub>：5G-AKA 由 ARPF、EAP-AKA' 由 AUSF</li>
+        <li><span class="actor">AUSF</span>推出 K<sub>SEAF</sub>，認證成功後交給 SEAF</li>
+        <li><span class="actor">SEAF</span>推出 K<sub>AMF</sub> 交給 AMF，隨即刪除 K<sub>SEAF</sub></li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（2/2）：往下分給各網元</h2>
+      <ol class="flow" start="5">
+        <li><span class="actor">AMF</span>推出 NAS 金鑰，以 NAS SMC 啟用</li>
+        <li><span class="actor">AMF</span>推出 K<sub>gNB</sub>／K<sub>N3IWF</sub>，連同 NH 交給 gNB／N3IWF</li>
+        <li><span class="actor">gNB</span>推出 RRC、UP 金鑰，以 AS SMC 啟用</li>
+        <li><span class="actor">UE（USIM + ME）</span>每把網路端金鑰都有對應的一把，由 ME 推導</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>白話解釋</h2>
+      <aside class="plain">
+        <p>總鑰匙（K）鎖在總公司保險箱和 SIM 卡裡；總公司刻出自己的鑰匙，再刻分公司大門鑰匙（K<sub>SEAF</sub>、K<sub>AMF</sub>）。</p>
+        <p>分公司替各部門刻專用門卡。刻法是單向的，撿到門卡也刻不回大門鑰匙。</p>
+      </aside>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（1/3）</h2>
+      <ul class="exam">
+        <li><strong>為什麼要分這麼多層？</strong>KDF 單向，下層外洩推不回上層；K 只在 USIM 與 ARPF</li>
+        <li><strong>K<sub>AUSF</sub> 由誰推導？</strong>5G-AKA：ARPF；EAP-AKA'：AUSF；UE 端都是 ME</li>
+        <li><strong>SEAF 怎麼處理 K<sub>SEAF</sub>？</strong>不外傳，推出 K<sub>AMF</sub> 後就刪除</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（2/3）</h2>
+      <ul class="exam">
+        <li><strong>一把 K<sub>AMF</sub> 怎麼推出兩把 NAS 金鑰？</strong>輸入不同的演算法類型區分值（0x01／0x02）</li>
+        <li><strong>K<sub>gNB</sub> 和 K<sub>N3IWF</sub> 差在哪？</strong>同一函數 A.9，接取類型 0x01／0x02</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（3/3）</h2>
+      <ul class="exam">
+        <li><strong>ngKSI 是什麼？'111' 呢？</strong>K<sub>AMF</sub> 的識別碼；'111' 表示沒有可用的 K<sub>AMF</sub></li>
+        <li><strong>K<sub>AMF</sub> 何時重新產生？</strong>主要認證、NAS re-keying／refresh、EPS 互通</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>參考條文</h2>
+      <ul class="refs">
+        <li>TS 33.501 §6.2.1：Key hierarchy（本頁主題）</li>
+        <li>TS 33.501 §6.2.2：Key derivation and distribution scheme（網路端與 UE 端各自持有的金鑰）</li>
+        <li>TS 33.501 §6.2.3：Handling of user-related keys（金鑰設定、ngKSI、金鑰生命週期）</li>
+        <li>TS 33.501 §6.1.1.3：Granularity of anchor key binding to serving network</li>
+        <li>TS 33.501 §6.7.2、§6.7.4：NAS／AS security mode command procedure</li>
+        <li>TS 33.501 Annex A.1、A.2、A.6–A.10：KDF 介面與各金鑰的推導函數</li>
+        <li>TS 33.220 Annex B.2.0：5GC 使用的 KDF</li>
+        <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§6.1.1.3、§6.2、Annex A）</li>
+      </ul>
+    </section>
+
+    <nav class="deck-bar" aria-label="簡報控制">
+      <a href="../pages/key-hierarchy.html">← 回文字版</a>
+      <div class="deck-controls">
+        <button class="deck-prev" type="button">上一張</button>
+        <span class="deck-count" aria-live="polite"></span>
+        <button class="deck-next" type="button">下一張</button>
+      </div>
+    </nav>
+  </main>
+  <script src="../assets/slides.js"></script>
+</body>
+</html>

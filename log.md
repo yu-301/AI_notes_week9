@@ -36,3 +36,7 @@
 ## [2026-11-03] add | §6.1.3.1 EAP-AKA' 認證
 - 新增 pages/eap-aka-prime.html、slides/eap-aka-prime.html（依據 sources/3GPP TS 33.501 V18.12.0 (Release 18).docx）
 - 更新 index.html、glossary.html（新增術語：ABBA、EAP、EAP-AKA'、EMSK）
+
+## [2026-11-03] add | §6.2 5G 金鑰階層與金鑰推導
+- 新增 pages/key-hierarchy.html、slides/key-hierarchy.html（依據 sources/3GPP TS 33.501 V18.12.0 (Release 18).docx）
+- 更新 index.html、glossary.html（新增術語：KAMF、KDF、KgNB、ngKSI、NH）
