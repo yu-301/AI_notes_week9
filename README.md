@@ -2,7 +2,7 @@
 
 把 3GPP **TS 33.501（5G System Security，Release 18）** 依主題拆成一頁一頁的筆記網站，每個主題都有**文字版**與**簡報版**。
 
-- 🌐 網站：（上傳 GitHub Pages 後把網址貼在這裡）
+- 🌐 網站：<https://yu-301.github.io/AI_notes_week9/>
 - 📘 AI 規則：[`CLAUDE.md`](CLAUDE.md)（內容與 [`AGENTS.md`](AGENTS.md) 相同）
 
 ## 這個專案怎麼運作
