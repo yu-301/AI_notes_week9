@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EAP-AKA' 認證（簡報）｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="deck">
+    <section class="slide slide-cover">
+      <span class="topic-clause">§6.1.3.1</span>
+      <h1>EAP-AKA' 認證</h1>
+      <p class="topic-summary">把 AKA 包進 EAP 框架：SEAF 只轉送，由 home network 的 AUSF 當 EAP 伺服器驗證。</p>
+    </section>
+
+    <section class="slide">
+      <h2>為什麼需要</h2>
+      <ul>
+        <li>5G 希望 3GPP 與非 3GPP 接取都用同一套認證框架</li>
+        <li>4G：EAP-AKA' 主要用在可信任的非 3GPP 接取</li>
+        <li>5G：UE 與服務網路<strong>必須同時支援</strong> EAP-AKA' 和 5G-AKA，由業者選</li>
+        <li>AUSF 親自當 EAP 伺服器，同樣具備 increased home control</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>關鍵名詞</h2>
+      <dl class="terms">
+        <dt>EAP <span class="term-full">Extensible Authentication Protocol</span></dt>
+        <dd>承載各種認證方法的框架</dd>
+        <dt>EAP-AKA' <span class="term-full">Improved Extensible Authentication Protocol Method for 3rd Generation Authentication and Key Agreement</span></dt>
+        <dd>在 EAP 裡執行的 AKA</dd>
+        <dt>AV' <span class="term-full">Transformed Authentication Vector</span></dt>
+        <dd>RAND、AUTN、XRES、CK'、IK'</dd>
+        <dt>CK' / IK' <span class="term-full">Cipher Key prime / Integrity Key prime</span></dt>
+        <dd>CK、IK 加入 SN name 推導</dd>
+        <dt>EMSK <span class="term-full">Extended Master Session Key</span></dt>
+        <dd>取最高 256 bits 當 K<sub>AUSF</sub></dd>
+      </dl>
+    </section>
+
+    <section class="slide">
+      <h2>EAP-AKA' vs. 5G-AKA</h2>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>比較項目</th><th>EAP-AKA'</th><th>5G-AKA</th></tr></thead>
+          <tbody>
+            <tr><td>規範基礎</td><td>RFC 5448 + Annex F</td><td>TS 33.501 自定</td></tr>
+            <tr><td>SEAF 角色</td><td>透明轉送</td><td>用 HXRES* 初步比對</td></tr>
+            <tr><td>AUSF 收到</td><td>AV'（XRES、CK'、IK'）</td><td>5G HE AV（XRES*、K<sub>AUSF</sub>）</td></tr>
+            <tr><td>手機回應</td><td>RES</td><td>RES*</td></tr>
+            <tr><td>SN name 綁定</td><td>CK'、IK'（AT_KDF_INPUT）</td><td>RES*、K<sub>AUSF</sub>、K<sub>SEAF</sub></td></tr>
+            <tr><td>K<sub>AUSF</sub> 來源</td><td>EMSK 最高 256 bits</td><td>CK||IK + SN name（A.2）</td></tr>
+            <tr><td>成功通知</td><td>EAP Success</td><td>Authenticate Response 結果</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（1/3）：準備考題</h2>
+      <ol class="flow">
+        <li><span class="actor">UDM/ARPF</span>產生認證向量，算出 CK'、IK' 取代 CK、IK</li>
+        <li><span class="actor">UDM</span>把 AV' 回給 AUSF（收到 SUCI 時附上 SUPI）</li>
+        <li><span class="actor">AUSF</span>產生 EAP-Request/AKA'-Challenge 送給 SEAF</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（2/3）：轉送與作答</h2>
+      <ol class="flow" start="4">
+        <li><span class="actor">SEAF</span>原封不動轉給 UE，附上 ngKSI、ABBA</li>
+        <li><span class="actor">UE（USIM + ME）</span>驗證 AUTN，算出 RES，推導 CK'、IK'</li>
+        <li><span class="actor">UE → SEAF → AUSF</span>回傳 EAP-Response，SEAF 透明轉送</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（3/3）：驗證與金鑰</h2>
+      <ol class="flow" start="7">
+        <li><span class="actor">AUSF</span>比對 RES 與 XRES，成功就通知 UDM</li>
+        <li><span class="actor">AUSF</span>EMSK → K<sub>AUSF</sub> → K<sub>SEAF</sub>，送 EAP Success 與 K<sub>SEAF</sub>（與 SUPI）</li>
+        <li><span class="actor">SEAF / UE</span>轉送 EAP Success；雙方各自推導 K<sub>AMF</sub></li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>白話解釋</h2>
+      <aside class="plain">
+        <p>5G-AKA 的分公司會先看一眼答案的指紋；EAP-AKA' 的分公司只是郵差，考卷和答卷都密封往返。</p>
+        <p>總公司親自批改，合格就寄回「合格通知」（EAP Success）和門禁卡（K<sub>SEAF</sub>）。</p>
+      </aside>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（1/3）</h2>
+      <ul class="exam">
+        <li><strong>EAP 三角色在 5G 是誰？</strong>peer = UE、pass-through authenticator = SEAF、EAP 伺服器 = AUSF</li>
+        <li><strong>SEAF 角色有何不同？</strong>EAP-AKA' 只轉送；5G-AKA 用 HXRES* 初步比對</li>
+        <li><strong>K<sub>AUSF</sub> 怎麼產生？</strong>EAP-AKA'：EMSK 最高 256 bits；5G-AKA：CK||IK + SN name</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（2/3）</h2>
+      <ul class="exam">
+        <li><strong>SN name 綁在哪？</strong>EAP-AKA'：CK'、IK'（AT_KDF_INPUT）；5G-AKA：RES* 與金鑰</li>
+        <li><strong>都有 increased home control 嗎？</strong>都有，AUSF 驗證成功後通知 UDM（§6.1.4.1）</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（3/3）</h2>
+      <ul class="exam">
+        <li><strong>誰決定用哪一種？</strong>home network 業者；UE 與服務網路兩種都要支援</li>
+        <li><strong>支援 fast re-authentication 嗎？</strong>5G 不支援（Annex F.3）</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>參考條文</h2>
+      <ul class="refs">
+        <li>TS 33.501 §6.1.3.1：Authentication procedure for EAP-AKA'（本頁主題）</li>
+        <li>TS 33.501 §6.1.1.1、§6.1.1.2：主要認證的一般規定、EAP framework</li>
+        <li>TS 33.501 §6.1.2：Initiation of authentication and selection of authentication method</li>
+        <li>TS 33.501 §6.1.3.3：Synchronization failure or MAC failure</li>
+        <li>TS 33.501 §6.1.4：Linking increased home control to subsequent procedures</li>
+        <li>TS 33.501 Annex A.3、A.6、A.7：CK'/IK'、K<sub>SEAF</sub>、K<sub>AMF</sub> 的推導函數</li>
+        <li>TS 33.501 Annex F：3GPP 5G profile for EAP-AKA'</li>
+        <li>RFC 3748（EAP）、RFC 5448（EAP-AKA'）</li>
+        <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§6.1.1–§6.1.4、Annex A、Annex F）</li>
+      </ul>
+    </section>
+
+    <nav class="deck-bar" aria-label="簡報控制">
+      <a href="../pages/eap-aka-prime.html">← 回文字版</a>
+      <div class="deck-controls">
+        <button class="deck-prev" type="button">上一張</button>
+        <span class="deck-count" aria-live="polite"></span>
+        <button class="deck-next" type="button">下一張</button>
+      </div>
+    </nav>
+  </main>
+  <script src="../assets/slides.js"></script>
+</body>
+</html>

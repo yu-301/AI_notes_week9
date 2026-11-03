@@ -32,3 +32,7 @@
 ## [2026-11-03] edit | 首頁 GitHub 連結與 README 網站網址
 - 更新 index.html：「GitHub 原始碼」連結改為 https://github.com/yu-301/AI_notes_week9
 - 更新 README.md：填上網站網址 https://yu-301.github.io/AI_notes_week9/
+
+## [2026-11-03] add | §6.1.3.1 EAP-AKA' 認證
+- 新增 pages/eap-aka-prime.html、slides/eap-aka-prime.html（依據 sources/3GPP TS 33.501 V18.12.0 (Release 18).docx）
+- 更新 index.html、glossary.html（新增術語：ABBA、EAP、EAP-AKA'、EMSK）

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EAP-AKA' 認證｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="wrap topic">
+    <a class="back" href="../index.html">← 回目錄</a>
+
+    <header class="topic-head">
+      <span class="topic-clause">§6.1.3.1</span>
+      <h1>EAP-AKA' 認證</h1>
+      <p class="topic-summary">把 AKA 包進 EAP 框架：SEAF 只轉送，由 home network 的 AUSF 當 EAP 伺服器驗證。</p>
+      <p class="topic-meta">TS 33.501 Rel-18｜更新於 <time datetime="2026-11-03">2026-11-03</time></p>
+      <p class="topic-links"><a href="../slides/eap-aka-prime.html">看簡報版</a></p>
+    </header>
+
+    <h2>為什麼需要</h2>
+    <p>5G 的核心網路希望不管手機從哪種接取網路進來（3GPP 的基地台，或 Wi-Fi 等非 3GPP 接取），都用同一套認證方式。可擴充認證協定（Extensible Authentication Protocol，EAP）本來就是通用的認證框架，所以 5G 把它列為主要認證的選項之一。</p>
+    <p>在 4G，EAP-AKA' 主要用在可信任的非 3GPP 接取（TS 33.402），3GPP 接取則用 EPS-AKA，認證結果由拜訪網路的 MME 決定。到了 5G，<strong>UE 和服務網路都必須同時支援 EAP-AKA' 和 5G-AKA</strong>，要用哪一種由 home network 業者決定（§6.1.1.1）。</p>
+    <p>EAP-AKA' 天生就由 home network 的 AUSF 擔任 EAP 伺服器、親自比對手機的回應，所以和 5G-AKA 一樣具備「增加 home network 控制」的效果（§6.1.4.1）。</p>
+
+    <h2>關鍵名詞</h2>
+    <dl class="terms">
+      <dt>EAP <span class="term-full">Extensible Authentication Protocol</span></dt>
+      <dd>通用的認證框架（RFC 3748），本身不規定怎麼認證，而是用來承載各種認證方法。</dd>
+      <dt>EAP-AKA' <span class="term-full">Improved Extensible Authentication Protocol Method for 3rd Generation Authentication and Key Agreement</span></dt>
+      <dd>在 EAP 裡執行的 AKA 認證方法（RFC 5448），5G 專用的設定寫在 TS 33.501 Annex F。</dd>
+      <dt>peer / pass-through authenticator / backend authentication server <span class="term-full">EAP 的三種角色</span></dt>
+      <dd>在 5G 中分別是 UE、SEAF、AUSF；AUSF 就是 EAP 伺服器（§6.1.1.2）。</dd>
+      <dt>AV' <span class="term-full">Transformed Authentication Vector</span></dt>
+      <dd>UDM/ARPF 交給 AUSF 的認證向量：RAND、AUTN、XRES、CK'、IK'。</dd>
+      <dt>CK' / IK' <span class="term-full">Cipher Key prime / Integrity Key prime</span></dt>
+      <dd>由 CK、IK 加上服務網路名稱推導出的金鑰（Annex A.3），用來取代原本的 CK、IK。</dd>
+      <dt>EMSK <span class="term-full">Extended Master Session Key</span></dt>
+      <dd>EAP-AKA' 由 CK'、IK' 推導出的金鑰；取最高 256 bits 當作 K<sub>AUSF</sub>。</dd>
+      <dt>AT_KDF_INPUT <span class="term-full">EAP-AKA' 屬性（RFC 5448）</span></dt>
+      <dd>EAP-AKA' 訊息裡的屬性，5G 用它攜帶服務網路名稱（network name）。</dd>
+      <dt>ABBA <span class="term-full">Anti-Bidding down Between Architectures</span></dt>
+      <dd>SEAF 送給 UE 的參數，用來防止日後新增的安全功能被降級；也是 K<sub>AMF</sub> 的推導輸入。</dd>
+    </dl>
+
+    <div class="table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr><th>比較項目</th><th>EAP-AKA'（§6.1.3.1）</th><th>5G-AKA（§6.1.3.2）</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>規範基礎</td><td>RFC 5448 + Annex F 的 5G 設定</td><td>TS 33.501 自己定義（強化 EPS-AKA）</td></tr>
+          <tr><td>SEAF 的角色</td><td>透明轉送 EAP 訊息，不做比對</td><td>用 HXRES* 先做初步比對</td></tr>
+          <tr><td>AUSF 收到的向量</td><td>AV'：RAND、AUTN、XRES、CK'、IK'</td><td>5G HE AV：RAND、AUTN、XRES*、K<sub>AUSF</sub></td></tr>
+          <tr><td>手機的回應</td><td>RES（放在 EAP-Response/AKA'-Challenge）</td><td>RES*</td></tr>
+          <tr><td>服務網路名稱放在哪</td><td>CK'、IK' 的推導（以 AT_KDF_INPUT 攜帶）</td><td>RES*、K<sub>AUSF</sub>、K<sub>SEAF</sub> 的推導</td></tr>
+          <tr><td>K<sub>AUSF</sub> 怎麼來</td><td>EMSK 的最高 256 bits</td><td>CK||IK 與服務網路名稱經 KDF（Annex A.2）</td></tr>
+          <tr><td>認證成功的通知</td><td>EAP Success</td><td>Nausf_UEAuthentication_Authenticate Response 中的結果</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>運作流程</h2>
+    <ol class="flow">
+      <li><span class="actor">UDM/ARPF</span>產生 AMF separation bit 為 1 的認證向量，再依 Annex A.3 算出 CK'、IK'，取代原本的 CK、IK。</li>
+      <li><span class="actor">UDM</span>把 AV'（RAND、AUTN、XRES、CK'、IK'）回給 AUSF，並註明要用於 EAP-AKA'；若當初收到的是 SUCI，也一併附上 SUPI。</li>
+      <li><span class="actor">AUSF</span>產生 EAP-Request/AKA'-Challenge，放在 Nausf_UEAuthentication_Authenticate Response 裡送給 SEAF。</li>
+      <li><span class="actor">SEAF</span>把 EAP 訊息原封不動放進 NAS Authentication Request 轉給 UE，並附上 ngKSI 與 ABBA。</li>
+      <li><span class="actor">UE（USIM + ME）</span>USIM 驗證 AUTN 的新鮮度，算出 RES、CK、IK；ME 再依 Annex A.3 推導出 CK'、IK'。AUTN 驗證失敗則依 §6.1.3.3 處理。</li>
+      <li><span class="actor">UE → SEAF → AUSF</span>UE 以 NAS 訊息回傳 EAP-Response/AKA'-Challenge，SEAF 同樣透明轉送給 AUSF。</li>
+      <li><span class="actor">AUSF</span>比對 RES 與 XRES，失敗就回錯誤給 SEAF；成功就把認證結果通知 UDM（§6.1.4）。雙方也可以再交換 EAP Notification 訊息。</li>
+      <li><span class="actor">AUSF</span>由 CK'、IK' 推導出 EMSK，取最高 256 bits 當 K<sub>AUSF</sub>，再推出 K<sub>SEAF</sub>（Annex A.6）。接著把 EAP Success 與 K<sub>SEAF</sub>（若當初用 SUCI，也附上 SUPI）送給 SEAF。</li>
+      <li><span class="actor">SEAF / UE</span>SEAF 把 EAP Success 連同 ngKSI、ABBA 轉給 UE，並由 K<sub>SEAF</sub>、ABBA、SUPI 推導 K<sub>AMF</sub> 交給 AMF。UE 收到 EAP Success 後，用同樣方式推出 K<sub>AUSF</sub>、K<sub>SEAF</sub>、K<sub>AMF</sub>。</li>
+    </ol>
+
+    <h2>白話解釋</h2>
+    <aside class="plain">
+      <p>延續 5G-AKA 那頁的比喻：5G-AKA 的分公司手上有「標準答案的指紋」，會先幫忙看一眼你的答案。EAP-AKA' 的分公司則只是郵差，總公司寄來的考卷是密封的，你寫完的答卷也原封不動寄回總公司。</p>
+      <p>總公司親自批改，合格就寄回「合格通知」（EAP Success）和分公司用的門禁卡（K<sub>SEAF</sub>）。分公司從頭到尾都看不懂考卷內容，只負責轉交。</p>
+    </aside>
+
+    <h2>常見考點</h2>
+    <ul class="exam">
+      <li><strong>EAP 的三種角色在 5G 分別是誰？</strong>UE 是 peer，SEAF 是 pass-through authenticator，AUSF 是 backend authentication server，也就是 EAP 伺服器（§6.1.1.2）。</li>
+      <li><strong>EAP-AKA' 和 5G-AKA 中，SEAF 的角色有什麼不同？</strong>EAP-AKA' 的 SEAF 只透明轉送 EAP 訊息，不做任何比對；5G-AKA 的 SEAF 拿到 HXRES*，可以先用 HRES* 做初步比對。</li>
+      <li><strong>兩者的 K<sub>AUSF</sub> 怎麼產生？</strong>EAP-AKA' 由 CK'、IK' 推出 EMSK，取最高 256 bits；5G-AKA 直接用 CK||IK 加上服務網路名稱經 KDF 推導（Annex A.2）。</li>
+      <li><strong>兩者的服務網路名稱綁定在哪裡？</strong>EAP-AKA' 綁在 CK'、IK' 的推導（Annex A.3），透過 AT_KDF_INPUT 攜帶；5G-AKA 綁在 RES*、K<sub>AUSF</sub>、K<sub>SEAF</sub> 的推導。</li>
+      <li><strong>兩者都有 increased home control 嗎？</strong>都有。EAP-AKA' 在 AUSF 驗證 EAP-Response/AKA'-Challenge 成功時確認；5G-AKA 在 AUSF 驗證 RES* 認證確認成功時確認，之後都要通知 UDM（§6.1.4.1）。</li>
+      <li><strong>誰決定要用哪一種？</strong>home network 業者決定，由 UDM/ARPF 依 SUPI 選擇；UE 和服務網路兩種都必須支援（§6.1.1.1、§6.1.2）。</li>
+      <li><strong>5G 支援 EAP-AKA' 的 fast re-authentication 嗎？</strong>不支援（Annex F.3）。</li>
+    </ul>
+
+    <h2>參考條文</h2>
+    <ul class="refs">
+      <li>TS 33.501 §6.1.3.1：Authentication procedure for EAP-AKA'（本頁主題）</li>
+      <li>TS 33.501 §6.1.1.1、§6.1.1.2：主要認證的一般規定、EAP framework</li>
+      <li>TS 33.501 §6.1.2：Initiation of authentication and selection of authentication method</li>
+      <li>TS 33.501 §6.1.3.3：Synchronization failure or MAC failure</li>
+      <li>TS 33.501 §6.1.4：Linking increased home control to subsequent procedures</li>
+      <li>TS 33.501 Annex A.3、A.6、A.7：CK'/IK'、K<sub>SEAF</sub>、K<sub>AMF</sub> 的推導函數</li>
+      <li>TS 33.501 Annex F：3GPP 5G profile for EAP-AKA'</li>
+      <li>RFC 3748（EAP）、RFC 5448（EAP-AKA'）</li>
+      <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§6.1.1–§6.1.4、Annex A、Annex F）</li>
+    </ul>
+  </main>
+</body>
+</html>
