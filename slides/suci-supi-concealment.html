@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SUPI 隱藏與 SUCI（簡報）｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="deck">
+    <section class="slide slide-cover">
+      <span class="topic-clause">§6.12</span>
+      <h1>SUPI 隱藏與 SUCI</h1>
+      <p class="topic-summary">5G 用公鑰加密把用戶永久身分 SUPI 包成 SUCI，空中介面上不再出現明文 IMSI，讓假基地台抓不到你是誰。</p>
+    </section>
+
+    <section class="slide">
+      <h2>為什麼需要</h2>
+      <ul>
+        <li>2G～4G：網路認不出臨時身分時，手機會用<strong>明文</strong>回傳 IMSI</li>
+        <li>假基地台（IMSI catcher）主動發出身分請求，就能收集附近手機的 IMSI</li>
+        <li>拿到 IMSI 就能追蹤特定使用者的位置</li>
+        <li>5G 目標：永久身分<strong>不再以明文</strong>出現在空中介面</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>關鍵名詞</h2>
+      <dl class="terms">
+        <dt>SUPI <span class="term-full">Subscription Permanent Identifier</span></dt>
+        <dd>永久身分，常見格式為 IMSI</dd>
+        <dt>SUCI <span class="term-full">Subscription Concealed Identifier</span></dt>
+        <dd>SUPI 加密後的版本</dd>
+        <dt>5G-GUTI <span class="term-full">5G Globally Unique Temporary Identifier</span></dt>
+        <dd>認證後網路分配的臨時身分</dd>
+        <dt>SIDF <span class="term-full">Subscription Identifier De-concealing Function</span></dt>
+        <dd>在 UDM 裡，持有私鑰、負責解開 SUCI</dd>
+        <dt>ECIES <span class="term-full">Elliptic Curve Integrated Encryption Scheme</span></dt>
+        <dd>ECDH 算共享金鑰 + 對稱加密的混合加密法</dd>
+      </dl>
+    </section>
+
+    <section class="slide">
+      <h2>SUCI 長什麼樣</h2>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>欄位</th><th>內容</th><th>加密？</th></tr></thead>
+          <tbody>
+            <tr><td>SUPI Type</td><td>IMSI 或 NAI</td><td>否</td></tr>
+            <tr><td>Home Network Identifier</td><td>MCC + MNC</td><td>否</td></tr>
+            <tr><td>Routing Indicator</td><td>導向正確的 UDM</td><td>否</td></tr>
+            <tr><td>Protection Scheme ID</td><td>0 = Null、1 = Profile A、2 = Profile B</td><td>否</td></tr>
+            <tr><td>Home Network Public Key ID</td><td>用哪一把公鑰</td><td>否</td></tr>
+            <tr><td>Scheme Output</td><td>臨時公鑰 + 加密 MSIN + MAC tag</td><td>是</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（1/2）：手機端</h2>
+      <ol class="flow">
+        <li><span class="actor">電信業者（事前配置）</span>公鑰寫進 USIM，私鑰只放在 SIDF</li>
+        <li><span class="actor">UE</span>每次產生全新的臨時金鑰對</li>
+        <li><span class="actor">UE</span>ECDH + KDF 推導出加密金鑰與 MAC 金鑰</li>
+        <li><span class="actor">UE</span>只加密 MSIN、附上 MAC，組成 SUCI 送出</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（2/2）：網路端</h2>
+      <ol class="flow" start="5">
+        <li><span class="actor">AMF/SEAF → AUSF → UDM</span>依明文 MCC/MNC 把 SUCI 轉回 home network</li>
+        <li><span class="actor">UDM 中的 SIDF</span>用私鑰驗證 MAC、解出 SUPI，進行認證</li>
+        <li><span class="actor">認證成功後</span>服務網路取得 SUPI 並分配 5G-GUTI</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>白話解釋</h2>
+      <aside class="plain">
+        <p>信封外只寫「請轉交台北總局」（MCC/MNC），收件人姓名封在只有總局打得開的內袋（加密的 MSIN）。</p>
+        <p>每次寄信都換新內袋（臨時金鑰），所以就算攔下兩封信，也看不出是同一人寄的。</p>
+      </aside>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（1/2）</h2>
+      <ul class="exam">
+        <li><strong>為什麼 MCC/MNC 不加密？</strong>服務網路要靠它知道該轉給哪個 home network</li>
+        <li><strong>為什麼每次 SUCI 都不同？</strong>每次用新臨時金鑰，達到 unlinkability</li>
+        <li><strong>誰能解開 SUCI？</strong>只有 home network UDM 裡的 SIDF</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（2/2）</h2>
+      <ul class="exam">
+        <li><strong>SUCI 由誰計算？</strong>USIM 或 ME，由 home network 業者決定</li>
+        <li><strong>Null scheme 何時用？風險？</strong>沒配置公鑰、未認證緊急通話；等同明文</li>
+        <li><strong>SUPI、SUCI、5G-GUTI 差別？</strong>永久身分／加密版本／認證後的臨時身分</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>參考條文</h2>
+      <ul class="refs">
+        <li>TS 33.501 §6.12：Subscription identifier privacy</li>
+        <li>TS 33.501 Annex C：Protection schemes for concealing the SUPI</li>
+        <li>TS 23.003：SUCI 欄位格式 <span class="todo">待查證：子條文編號</span></li>
+      </ul>
+    </section>
+
+    <nav class="deck-bar" aria-label="簡報控制">
+      <a href="../pages/suci-supi-concealment.html">← 回文字版</a>
+      <div class="deck-controls">
+        <button class="deck-prev" type="button">上一張</button>
+        <span class="deck-count" aria-live="polite"></span>
+        <button class="deck-next" type="button">下一張</button>
+      </div>
+    </nav>
+  </main>
+  <script src="../assets/slides.js"></script>
+</body>
+</html>

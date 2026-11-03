@@ -1,0 +1,240 @@
+/* 5G 安全筆記站 — 唯一樣式檔。顏色只用下方變數（見 CLAUDE.md 第 10 節）。 */
+
+:root {
+  --paper: #F2F4F6;
+  --ink: #1E2A35;
+  --muted: #5B6B7A;
+  --signal: #0F6E7A;
+  --exam: #9A5B13;
+  --rule: #D3DAE1;
+  --surface: #FFFFFF;
+  --serif: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #151A1F;
+    --ink: #DCE3EA;
+    --muted: #93A3B2;
+    --signal: #4FB8C4;
+    --exam: #E0A458;
+    --rule: #2C3640;
+    --surface: #1C232A;
+    color-scheme: dark;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  line-height: 1.8;
+}
+
+.wrap { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+
+a { color: var(--signal); text-underline-offset: 0.2em; }
+a:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; border-radius: 2px; }
+
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.35; }
+
+/* ---------- 首頁 ---------- */
+.site-head h1 { font-size: 2.25rem; margin: 0 0 0.5rem; }
+.site-head p { color: var(--muted); margin: 0; }
+.site-nav { margin-top: 1rem; display: flex; gap: 1.25rem; font-size: 0.95rem; }
+
+.toc-heading {
+  font-size: 1.1rem;
+  margin: 3rem 0 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--ink);
+}
+.toc { list-style: none; margin: 0; padding: 0; }
+.toc li { border-bottom: 1px solid var(--rule); }
+.toc-item {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr auto;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 1rem 0;
+}
+.toc-clause {
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  color: var(--signal);
+  font-variant-numeric: tabular-nums;
+}
+.toc-body { display: flex; flex-direction: column; }
+.toc-title { font-weight: 700; color: var(--ink); text-decoration: none; }
+.toc-title:hover { text-decoration: underline; }
+.toc-links { display: flex; gap: 1rem; margin-top: 0.35rem; font-size: 0.9rem; }
+.toc-summary { color: var(--muted); font-size: 0.95rem; }
+.toc-date { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+
+.site-foot { margin-top: 3rem; color: var(--muted); font-size: 0.85rem; }
+
+/* ---------- 主題頁 ---------- */
+.back { font-size: 0.95rem; }
+.topic-head { margin: 2rem 0 2.5rem; }
+.topic-clause {
+  display: block;
+  font-family: var(--serif);
+  font-size: 4.5rem;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--signal);
+  font-variant-numeric: tabular-nums;
+}
+.topic-head h1 { font-size: 2rem; margin: 0.75rem 0 0.5rem; }
+.topic-summary { font-size: 1.15rem; margin: 0; }
+.topic-meta { color: var(--muted); font-size: 0.85rem; margin-top: 0.75rem; }
+
+.topic h2 {
+  font-size: 1.35rem;
+  margin: 3rem 0 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+/* 關鍵名詞 */
+.terms { margin: 0; }
+.terms dt { font-weight: 700; margin-top: 1rem; }
+.term-full { font-weight: 400; color: var(--muted); font-size: 0.9rem; margin-left: 0.4rem; }
+.terms dd { margin: 0.15rem 0 0; }
+
+/* 運作流程：有連線的步驟 */
+.flow { list-style: none; margin: 0; padding: 0; }
+.flow li { position: relative; padding: 0 0 1.5rem 3rem; }
+.flow li::before {
+  content: counter(list-item);
+  position: absolute;
+  left: 0;
+  top: 0.15rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  border: 2px solid var(--signal);
+  color: var(--signal);
+  background: var(--paper);
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.flow li::after {
+  content: "";
+  position: absolute;
+  left: 0.9rem;
+  top: 2.2rem;
+  bottom: 0.2rem;
+  width: 2px;
+  background: var(--rule);
+}
+.flow li:last-child::after { display: none; }
+.actor { display: block; font-weight: 700; color: var(--signal); }
+
+/* 表格 */
+.table-wrap { overflow-x: auto; margin: 1.25rem 0; }
+.spec-table { border-collapse: collapse; width: 100%; font-size: 0.95rem; min-width: 32rem; }
+.spec-table th, .spec-table td {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+.spec-table th { border-bottom: 2px solid var(--ink); font-weight: 700; }
+
+/* 白話解釋 */
+.plain { background: var(--surface); border-left: 4px solid var(--signal); padding: 1rem 1.25rem; margin: 0; }
+.plain p { margin: 0 0 0.75rem; }
+.plain p:last-child { margin-bottom: 0; }
+
+/* 常見考點 */
+.exam { list-style: none; margin: 0; padding: 0; }
+.exam li { border-left: 4px solid var(--exam); padding: 0.25rem 0 0.25rem 1rem; margin-bottom: 1.25rem; }
+.exam strong { display: block; color: var(--exam); }
+
+/* 參考條文 */
+.refs { padding-left: 1.25rem; }
+
+/* 待查證標記 */
+.todo { color: var(--exam); border: 1px dashed var(--exam); border-radius: 3px; padding: 0 0.3rem; font-size: 0.85em; }
+
+/* ---------- 術語表 ---------- */
+.glossary { margin: 1.5rem 0 0; }
+.glossary .term { padding: 1rem 0; border-bottom: 1px solid var(--rule); }
+.glossary dt { font-weight: 700; }
+.glossary dd { margin: 0.25rem 0 0; }
+
+/* ---------- 手機 ---------- */
+@media (max-width: 36rem) {
+  .wrap { padding-top: 2rem; }
+  .site-head h1 { font-size: 1.75rem; }
+  .toc-item { grid-template-columns: 4.5rem 1fr; }
+  .toc-date { grid-column: 2; }
+  .topic-clause { font-size: 3.25rem; }
+}
+
+/* ---------- 主題頁 → 簡報連結 ---------- */
+.topic-links { margin-top: 1rem; font-size: 0.95rem; }
+
+/* ---------- 簡報 ---------- */
+.deck { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+.slide {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 64rem;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2.5rem 3rem;
+  overflow-y: auto;
+  font-size: clamp(1.05rem, 1.6vw, 1.45rem);
+}
+.slide.is-active { display: flex; }
+.slide h2 {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  margin: 0 0 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--ink);
+}
+.slide p, .slide li { line-height: 1.7; }
+.slide-cover .topic-clause { font-size: clamp(4rem, 11vw, 8rem); }
+.slide-cover h1 { font-size: clamp(2rem, 4.5vw, 3.4rem); margin: 1rem 0 0.75rem; }
+.slide-cover .topic-summary { font-size: clamp(1.1rem, 2vw, 1.5rem); max-width: 40em; }
+.slide .spec-table { font-size: 0.85em; }
+.deck-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.deck-controls { display: flex; align-items: center; gap: 0.75rem; }
+.deck-controls button {
+  font: inherit;
+  color: var(--signal);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
+}
+.deck-controls button:disabled { color: var(--muted); cursor: default; opacity: 0.5; }
+.deck-controls button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.deck-count { font-variant-numeric: tabular-nums; min-width: 3.5rem; text-align: center; }
+
+@media (max-width: 36rem) {
+  .slide { padding: 1.5rem 1.25rem; }
+}
