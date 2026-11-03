@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!-- 主題頁模板：複製到 pages/ 後，替換所有 {{...}}。區塊順序不可更動（見 CLAUDE.md 第 4 節）。 -->
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{頁面標題}}｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="wrap topic">
+    <a class="back" href="../index.html">← 回目錄</a>
+
+    <header class="topic-head">
+      <span class="topic-clause">{{§條文編號}}</span>
+      <h1>{{頁面標題}}</h1>
+      <p class="topic-summary">{{一句話摘要，60 字內}}</p>
+      <p class="topic-meta">TS 33.501 Rel-18｜更新於 <time datetime="{{YYYY-MM-DD}}">{{YYYY-MM-DD}}</time></p>
+      <p class="topic-links"><a href="../slides/{{檔名}}.html">看簡報版</a></p>
+    </header>
+
+    <h2>為什麼需要</h2>
+    <p>{{這個機制要解決的威脅；4G 以前的做法與缺點}}</p>
+
+    <h2>關鍵名詞</h2>
+    <dl class="terms">
+      <dt>{{縮寫}} <span class="term-full">{{English Full Name}}</span></dt>
+      <dd>{{一句白話解釋}}</dd>
+    </dl>
+
+    <h2>運作流程</h2>
+    <ol class="flow">
+      <li><span class="actor">{{執行者，例如 UE}}</span>{{做了什麼，最多兩句}}</li>
+    </ol>
+
+    <h2>白話解釋</h2>
+    <aside class="plain">
+      <p>{{用生活比喻說明整個機制}}</p>
+    </aside>
+
+    <h2>常見考點</h2>
+    <ul class="exam">
+      <li><strong>{{問題？}}</strong>{{簡短答案}}</li>
+    </ul>
+
+    <h2>參考條文</h2>
+    <ul class="refs">
+      <li>TS 33.501 {{§條文編號}}：{{條文名稱或內容}}</li>
+      <li>依據來源：{{sources/ 中的檔名；若沒有依據原文，改寫成 <span class="todo">尚未對照原文</span>}}</li>
+    </ul>
+  </main>
+</body>
+</html>

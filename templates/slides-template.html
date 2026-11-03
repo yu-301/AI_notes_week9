@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!-- 簡報模板：複製到 slides/ 後替換 {{...}}。投影片順序與數量規則見 CLAUDE.md 第 6 節。 -->
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{頁面標題}}（簡報）｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="deck">
+    <section class="slide slide-cover">
+      <span class="topic-clause">{{§條文編號}}</span>
+      <h1>{{頁面標題}}</h1>
+      <p class="topic-summary">{{一句話摘要}}</p>
+    </section>
+
+    <section class="slide">
+      <h2>為什麼需要</h2>
+      <ul><li>{{重點，最多 4 點}}</li></ul>
+    </section>
+
+    <section class="slide">
+      <h2>關鍵名詞</h2>
+      <dl class="terms"><dt>{{縮寫}} <span class="term-full">{{English Full Name}}</span></dt><dd>{{一句白話解釋}}</dd></dl>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（1/2）</h2>
+      <ol class="flow"><li><span class="actor">{{執行者}}</span>{{做了什麼}}</li></ol>
+    </section>
+
+    <section class="slide">
+      <h2>白話解釋</h2>
+      <aside class="plain"><p>{{比喻}}</p></aside>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（1/2）</h2>
+      <ul class="exam"><li><strong>{{問題？}}</strong>{{簡短答案}}</li></ul>
+    </section>
+
+    <section class="slide">
+      <h2>參考條文</h2>
+      <ul class="refs"><li>TS 33.501 {{§條文編號}}：{{條文名稱}}</li></ul>
+    </section>
+
+    <nav class="deck-bar" aria-label="簡報控制">
+      <a href="../pages/{{檔名}}.html">← 回文字版</a>
+      <div class="deck-controls">
+        <button class="deck-prev" type="button">上一張</button>
+        <span class="deck-count" aria-live="polite"></span>
+        <button class="deck-next" type="button">下一張</button>
+      </div>
+    </nav>
+  </main>
+  <script src="../assets/slides.js"></script>
+</body>
+</html>
