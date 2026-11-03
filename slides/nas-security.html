@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NAS 安全機制（簡報）｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="deck">
+    <section class="slide slide-cover">
+      <span class="topic-clause">§6.4</span>
+      <h1>NAS 安全機制</h1>
+      <p class="topic-summary">UE 與 AMF 之間的 NAS 訊號同時有完整性與加密保護，並靠 NAS COUNT 防止重放攻擊。</p>
+    </section>
+
+    <section class="slide">
+      <h2>為什麼需要</h2>
+      <ul>
+        <li>NAS 是 UE 與 AMF 間的控制訊號：註冊、移動管理、身分查詢</li>
+        <li>被竄改、偽造或重放，就可能被降級或冒充網路下指令</li>
+        <li>需要<strong>完整性、機密性、重放保護</strong>，端點是 UE 與 AMF</li>
+        <li>5G 另外處理多重接取（§6.4.2）與初始訊息保護（§6.4.6）</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>關鍵名詞</h2>
+      <dl class="terms">
+        <dt>NAS <span class="term-full">Non Access Stratum</span></dt>
+        <dd>UE 與 AMF 間的控制訊號層</dd>
+        <dt>NIA / NEA <span class="term-full">Integrity / Encryption Algorithm for 5G</span></dt>
+        <dd>128-bit 完整性／加密演算法</dd>
+        <dt>NAS-MAC <span class="term-full">NAS Message Authentication Code</span></dt>
+        <dd>附在訊息後的 32-bit 驗證碼</dd>
+        <dt>NAS COUNT <span class="term-full">NAS Count</span></dt>
+        <dd>OVERFLOW + SQN，防重放</dd>
+        <dt>NAS SMC <span class="term-full">NAS Security Mode Command</span></dt>
+        <dd>選演算法、啟動 NAS 安全</dd>
+      </dl>
+    </section>
+
+    <section class="slide">
+      <h2>演算法的輸入參數</h2>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>輸入</th><th>完整性（NIA）</th><th>加密（NEA）</th></tr></thead>
+          <tbody>
+            <tr><td>KEY</td><td>K<sub>NASint</sub></td><td>K<sub>NASenc</sub></td></tr>
+            <tr><td>BEARER</td><td colspan="2">NAS connection identifier（0x01／0x02）</td></tr>
+            <tr><td>DIRECTION</td><td colspan="2">上行 0、下行 1</td></tr>
+            <tr><td>COUNT</td><td colspan="2">0x00 || NAS COUNT</td></tr>
+            <tr><td>LENGTH</td><td>不需要</td><td>金鑰流長度</td></tr>
+            <tr><td>輸出</td><td>32-bit NAS-MAC</td><td>金鑰流（與明文相加）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（1/2）：初始訊息與 SMC</h2>
+      <ol class="flow">
+        <li><span class="actor">UE</span>無上下文：初始 NAS 訊息只放 cleartext IEs</li>
+        <li><span class="actor">UE</span>有上下文：完整訊息加密放進 NAS container，整則做完整性保護</li>
+        <li><span class="actor">AMF</span>找不到上下文或驗證失敗，就發起主要認證</li>
+        <li><span class="actor">AMF</span>送出 NAS SMC：重播 UE 安全能力、選定演算法、ngKSI（只做完整性）</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（2/2）：啟動保護</h2>
+      <ol class="flow" start="5">
+        <li><span class="actor">UE</span>驗證 SMC 並比對安全能力，通過就啟動 NAS 安全</li>
+        <li><span class="actor">UE</span>回 Security Mode Complete，必要時附完整初始訊息</li>
+        <li><span class="actor">AMF</span>開始下行加密，以完整初始訊息為準回應</li>
+        <li><span class="actor">UE / AMF</span>每則訊息算 NAS-MAC、加密；每個 NAS COUNT 只收一次</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>白話解釋</h2>
+      <aside class="plain">
+        <p>每份公文都裝進只有你和總務處（AMF）打得開的信封、蓋上印章（NAS-MAC）、寫上流水號（NAS COUNT），重複的流水號一律退件。</p>
+        <p>總務處回信時會把「你說你會用的鎖」再念一次，不一樣就代表中間有人動過手腳。</p>
+      </aside>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（1/3）</h2>
+      <ul class="exam">
+        <li><strong>NAS 安全保護哪兩端？</strong>UE 與 AMF；UE 與 gNB 之間是 AS 安全</li>
+        <li><strong>NAS COUNT 組成？</strong>16-bit OVERFLOW + 8-bit SQN，只傳 SQN</li>
+        <li><strong>為什麼不能隨便歸零？</strong>同金鑰同 COUNT 會重用金鑰流；新 K<sub>AMF</sub> 才歸零</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（2/3）</h2>
+      <ul class="exam">
+        <li><strong>同時 3GPP + 非 3GPP 連同一 AMF？</strong>共用上下文，各自的連線 ID 與 NAS COUNT</li>
+        <li><strong>初始 NAS 訊息怎麼保護？</strong>明文只放 cleartext IEs，其餘加密進 NAS container</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（3/3）</h2>
+      <ul class="exam">
+        <li><strong>SMC 怎麼防降級？</strong>重播 UE 安全能力讓 UE 比對（§6.7.2）</li>
+        <li><strong>完整性可以改回 NULL 嗎？</strong>不行，啟用後直到上下文刪除（§6.4.3.2）</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>參考條文</h2>
+      <ul class="refs">
+        <li>TS 33.501 §6.4：NAS security mechanisms（本頁主題）</li>
+        <li>TS 33.501 §6.4.2：Security for multiple NAS connections</li>
+        <li>TS 33.501 §6.4.3、§6.4.4：NAS integrity／confidentiality mechanisms</li>
+        <li>TS 33.501 §6.4.5：Handling of NAS COUNTs</li>
+        <li>TS 33.501 §6.4.6：Protection of initial NAS message</li>
+        <li>TS 33.501 §6.7.2：NAS security mode command procedure</li>
+        <li>TS 33.501 Annex D：Algorithms for ciphering and integrity protection</li>
+        <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§6.4、§6.7.2、Annex D）</li>
+      </ul>
+    </section>
+
+    <nav class="deck-bar" aria-label="簡報控制">
+      <a href="../pages/nas-security.html">← 回文字版</a>
+      <div class="deck-controls">
+        <button class="deck-prev" type="button">上一張</button>
+        <span class="deck-count" aria-live="polite"></span>
+        <button class="deck-next" type="button">下一張</button>
+      </div>
+    </nav>
+  </main>
+  <script src="../assets/slides.js"></script>
+</body>
+</html>
