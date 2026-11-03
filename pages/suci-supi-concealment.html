@@ -30,11 +30,11 @@
       <dt>SUPI <span class="term-full">Subscription Permanent Identifier</span></dt>
       <dd>用戶永久身分，最常見的格式就是 IMSI。等同你的「身分證字號」，不應外洩。</dd>
       <dt>SUCI <span class="term-full">Subscription Concealed Identifier</span></dt>
-      <dd>SUPI 加密後的版本，可以安全地在空中介面傳送。</dd>
+      <dd>SUPI 加密後的版本，可以安全地在空中介面傳送。只會出現在少數 NAS 訊息中：還沒有 5G-GUTI 時的初次註冊、回覆 Identity Request，以及初次註冊未完成時的 De-Registration（§6.12.2）。</dd>
       <dt>5G-GUTI <span class="term-full">5G Globally Unique Temporary Identifier</span></dt>
-      <dd>網路分配的臨時身分。認證完成後，平常的通訊大多用它，而不是 SUCI。</dd>
+      <dd>網路分配的臨時身分，只有在 NAS 安全啟動成功後才會發給手機；之後平常的通訊大多用它，而不是 SUCI（§6.12.3）。</dd>
       <dt>SIDF <span class="term-full">Subscription Identifier De-concealing Function</span></dt>
-      <dd>位在 home network 的 UDM 裡，持有私鑰，負責把 SUCI 解回 SUPI。</dd>
+      <dd>位在 home network 的 UDM 裡，用安全保存的 home network 私鑰把 SUCI 解回 SUPI；只有 home network 的網元可以呼叫它（§6.12.5）。</dd>
       <dt>ECIES <span class="term-full">Elliptic Curve Integrated Encryption Scheme</span></dt>
       <dd>橢圓曲線混合加密：先用 ECDH 算出共享金鑰，再用對稱加密保護資料。SUCI 就是用它產生的。</dd>
     </dl>
@@ -45,12 +45,12 @@
           <tr><th>SUCI 欄位</th><th>內容</th><th>是否加密</th></tr>
         </thead>
         <tbody>
-          <tr><td>SUPI Type</td><td>SUPI 的種類（例如 IMSI 或 NAI）</td><td>否</td></tr>
+          <tr><td>SUPI Type</td><td>SUPI 的種類（IMSI，或 NAI 格式的網路專屬識別碼）</td><td>否</td></tr>
           <tr><td>Home Network Identifier</td><td>MCC + MNC，指出用戶屬於哪家電信</td><td>否</td></tr>
-          <tr><td>Routing Indicator</td><td>協助把請求送到正確的 UDM</td><td>否</td></tr>
+          <tr><td>Routing Indicator</td><td>協助找到能服務該用戶的 UDM instance</td><td>否</td></tr>
           <tr><td>Protection Scheme ID</td><td>使用哪種保護方案（見下表）</td><td>否</td></tr>
           <tr><td>Home Network Public Key ID</td><td>用的是哪一把公鑰</td><td>否</td></tr>
-          <tr><td>Scheme Output</td><td>臨時公鑰 + 加密後的 MSIN + MAC tag</td><td>是（MSIN 部分）</td></tr>
+          <tr><td>Scheme Output</td><td>臨時公鑰 + 加密後的 MSIN（NAI 則為 username）+ MAC tag</td><td>是（MSIN／username 部分）</td></tr>
         </tbody>
       </table>
     </div>
@@ -61,22 +61,23 @@
           <tr><th>保護方案</th><th>ID</th><th>橢圓曲線</th><th>說明</th></tr>
         </thead>
         <tbody>
-          <tr><td>Null scheme</td><td>0</td><td>無</td><td>不加密，輸出等於明文</td></tr>
-          <tr><td>Profile A</td><td>1</td><td>Curve25519（X25519）</td><td>對稱部分為 AES-128 CTR 加密 + HMAC-SHA-256</td></tr>
-          <tr><td>Profile B</td><td>2</td><td>secp256r1（NIST P-256）</td><td>對稱部分同 Profile A</td></tr>
+          <tr><td>Null scheme</td><td>0x0</td><td>無</td><td>不加密，輸出等於輸入，沒有隱私保護</td></tr>
+          <tr><td>Profile A</td><td>0x1</td><td>Curve25519（X25519）</td><td>KDF 為 ANSI-X9.63-KDF（SHA-256），加密為 AES-128 CTR，MAC 為 HMAC-SHA-256 取 64 bits；臨時公鑰 256 bits</td></tr>
+          <tr><td>Profile B</td><td>0x2</td><td>secp256r1（NIST P-256）</td><td>對稱部分同 Profile A；臨時公鑰使用點壓縮，共 264 bits</td></tr>
+          <tr><td>保留值</td><td>0x3–0xF</td><td>—</td><td>0x3–0xB 留給未來標準方案，0xC–0xF 給業者自訂方案</td></tr>
         </tbody>
       </table>
     </div>
 
     <h2>運作流程</h2>
     <ol class="flow">
-      <li><span class="actor">電信業者（事前配置）</span>把 home network 公鑰和公鑰 ID 寫進 USIM，私鑰則只存在 home network 的 SIDF。</li>
+      <li><span class="actor">電信業者（事前配置）</span>在 home network 的控制下，把 home network 公鑰和公鑰 ID 安全地配置到 USIM；私鑰只保存在 home network，由 SIDF 使用。</li>
       <li><span class="actor">UE</span>每次需要送出身分時，都產生一組全新的臨時（ephemeral）金鑰對。</li>
       <li><span class="actor">UE</span>用臨時私鑰和 home network 公鑰做 ECDH 得到共享祕密，再經 KDF 推導出加密金鑰與 MAC 金鑰。</li>
-      <li><span class="actor">UE</span>只加密 SUPI 中的 MSIN，並附上 MAC tag；MCC/MNC 保持明文，組成 SUCI 送出。</li>
+      <li><span class="actor">UE</span>只加密 SUPI 中的 MSIN（NAI 格式則加密 username），並附上 MAC tag；Home Network Identifier 和 Routing Indicator 不加密，組成 SUCI 送出。</li>
       <li><span class="actor">AMF/SEAF → AUSF → UDM</span>服務網路看不懂 SUCI，只依明文的 MCC/MNC 把它隨認證請求轉送回 home network。</li>
       <li><span class="actor">UDM 中的 SIDF</span>用私鑰重算共享祕密，驗證 MAC 後解出 SUPI，接著進行認證。</li>
-      <li><span class="actor">認證成功後</span>服務網路才取得 SUPI，並分配 5G-GUTI；之後的通訊改用 5G-GUTI。</li>
+      <li><span class="actor">認證成功後</span>AUSF 把 SUPI 交給服務網路；NAS 安全啟動成功後，AMF 才分配新的 5G-GUTI，之後的通訊改用 5G-GUTI。</li>
     </ol>
 
     <h2>白話解釋</h2>
@@ -90,17 +91,17 @@
       <li><strong>為什麼 MCC/MNC 不加密？</strong>服務網路需要知道要把請求轉給哪一家 home network，才能讓 SIDF 解密；如果全部加密，就沒人知道要送去哪裡。</li>
       <li><strong>為什麼同一支手機每次送出的 SUCI 都不一樣？</strong>因為每次都用新的臨時金鑰對，密文因此不同，攻擊者無法把多次出現的 SUCI 連結到同一人（unlinkability）。</li>
       <li><strong>誰能把 SUCI 解回 SUPI？</strong>只有 home network UDM 裡的 SIDF，因為私鑰只在那裡；漫遊時的服務網路解不開。</li>
-      <li><strong>SUCI 由誰計算？</strong>可以在 USIM 內計算，也可以由手機（ME）計算，由 home network 業者決定。</li>
-      <li><strong>什麼情況會使用 null scheme？有什麼風險？</strong>例如 home network 沒有配置公鑰，或未經認證的緊急通話。此時 SUPI 等同明文送出，失去隱私保護。</li>
-      <li><strong>SUPI、SUCI、5G-GUTI 差在哪？</strong>SUPI 是永久身分；SUCI 是它加密後的版本，主要用在初次註冊；5G-GUTI 是認證後網路分配的臨時身分，用在日常通訊。</li>
+      <li><strong>SUCI 由誰計算？</strong>可以在 USIM 內計算，也可以由手機（ME）計算，由 home network 業者決定。若由 ME 計算，USIM 裡會有一份保護方案的優先順序清單，ME 選自己支援、優先序最高的方案。</li>
+      <li><strong>什麼情況會使用 null scheme？有什麼風險？</strong>只有三種情況：沒有 5G-GUTI 的未認證緊急通話、home network 設定使用 null scheme、home network 沒有配置公鑰。此時 SUPI 等同明文送出，失去隱私保護（§6.12.2、Annex C.2）。</li>
+      <li><strong>SUPI、SUCI、5G-GUTI 差在哪？</strong>SUPI 是永久身分；SUCI 是它加密後的版本，只用在初次註冊、Identity Response 等少數訊息；5G-GUTI 是 NAS 安全啟動後網路分配的臨時身分，用在日常通訊。</li>
     </ul>
 
     <h2>參考條文</h2>
     <ul class="refs">
-      <li>TS 33.501 §6.12：Subscription identifier privacy（SUPI、SUCI、SIDF 的整體規定）</li>
+      <li>TS 33.501 §6.12：Subscription identifier privacy（§6.12.2 SUCI、§6.12.3 5G-GUTI、§6.12.4 身分查詢程序、§6.12.5 SIDF）</li>
       <li>TS 33.501 Annex C：Protection schemes for concealing the SUPI（Null scheme、Profile A、Profile B 的細節）</li>
       <li>TS 23.003：SUCI 的欄位格式定義 <span class="todo">待查證：子條文編號</span></li>
-      <li>依據來源：<span class="todo">尚未對照原文</span></li>
+      <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§6.12、Annex C）</li>
     </ul>
   </main>
 </body>

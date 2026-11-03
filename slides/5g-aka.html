@@ -22,8 +22,8 @@
       <ul>
         <li>手機與網路要<strong>互相</strong>確認身分，並產生後續加密金鑰</li>
         <li>4G EPS-AKA：認證結果<strong>完全由拜訪網路</strong>的 MME 判定</li>
-        <li>漫遊時拜訪網路可謊稱用戶已認證，冒用身分或灌水帳單</li>
-        <li>5G-AKA：最終由 home network 的 AUSF 確認（increased home control）</li>
+        <li>home network 拿不到證據，可能被替不在場的用戶假登記</li>
+        <li>5G-AKA：RES* 送回 home network，由 AUSF 最終確認（increased home control）</li>
       </ul>
     </section>
 
@@ -52,30 +52,38 @@
             <tr><td>誰判定成功</td><td>MME 自行判定</td><td>SEAF 初步、AUSF 最終確認</td></tr>
             <tr><td>拜訪網路拿到</td><td>XRES（明文）</td><td>只有 HXRES*</td></tr>
             <tr><td>手機回應</td><td>RES</td><td>RES*（加入 SN name）</td></tr>
-            <tr><td>金鑰綁定</td><td>K<sub>ASME</sub> 綁定 SN ID</td><td>RES*、K<sub>AUSF</sub> 綁定 SN name</td></tr>
+            <tr><td>金鑰綁定</td><td>K<sub>ASME</sub> 綁定 SN ID</td><td>RES*、K<sub>AUSF</sub>、K<sub>SEAF</sub> 綁定 SN name</td></tr>
             <tr><td>何時拿到錨點金鑰</td><td>隨認證向量附上</td><td>AUSF 確認後才給</td></tr>
+            <tr><td>認證向量數量</td><td>可一次拿多組</td><td>每次一組、不可預抓</td></tr>
           </tbody>
         </table>
       </div>
     </section>
 
     <section class="slide">
-      <h2>運作流程（1/2）：準備考題</h2>
+      <h2>運作流程（1/3）：發起與產生向量</h2>
       <ol class="flow">
-        <li><span class="actor">SEAF</span>帶 SUCI/SUPI 與 SN name 向 AUSF 發起認證</li>
+        <li><span class="actor">SEAF</span>帶 SUCI（或 SUPI）與 SN name 向 AUSF 發起認證</li>
         <li><span class="actor">AUSF</span>確認 SEAF 可用該 SN name，轉給 UDM/ARPF</li>
-        <li><span class="actor">UDM/ARPF</span>解出 SUPI，產生 RAND、AUTN、XRES*、K<sub>AUSF</sub></li>
-        <li><span class="actor">AUSF</span>留下 XRES*，算出 HXRES*、K<sub>SEAF</sub>，只給 SEAF RAND、AUTN、HXRES*</li>
+        <li><span class="actor">UDM/ARPF</span>SIDF 解出 SUPI、選 5G-AKA，產生 RAND、AUTN、XRES*、K<sub>AUSF</sub></li>
       </ol>
     </section>
 
     <section class="slide">
-      <h2>運作流程（2/2）：作答與確認</h2>
-      <ol class="flow" start="5">
+      <h2>運作流程（2/3）：出題與作答</h2>
+      <ol class="flow" start="4">
+        <li><span class="actor">AUSF</span>留下 XRES*，算出 HXRES*、K<sub>SEAF</sub>，只給 SEAF RAND、AUTN、HXRES*</li>
         <li><span class="actor">SEAF</span>送 RAND、AUTN、ngKSI、ABBA 給手機</li>
-        <li><span class="actor">UE（USIM + ME）</span>驗證 AUTN，算出 RES → RES*，推導 K<sub>AUSF</sub>、K<sub>SEAF</sub></li>
-        <li><span class="actor">SEAF</span>比對 HRES* 與 HXRES*，相符後把 RES* 轉給 AUSF</li>
-        <li><span class="actor">AUSF</span>比對 RES* 與 XRES*，成功才交出 K<sub>SEAF</sub>（與 SUPI）</li>
+        <li><span class="actor">UE（USIM + ME）</span>驗證 AUTN 與 separation bit，算出 RES*、K<sub>AUSF</sub>、K<sub>SEAF</sub>，回傳 RES*</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（3/3）：比對與確認</h2>
+      <ol class="flow" start="7">
+        <li><span class="actor">SEAF</span>比對 HRES* 與 HXRES*，不論結果都把 RES* 轉給 AUSF</li>
+        <li><span class="actor">AUSF</span>比對 RES* 與 XRES*、通知 UDM，成功才交出 K<sub>SEAF</sub>（與 SUPI）</li>
+        <li><span class="actor">SEAF / AMF</span>推導 K<sub>AMF</sub>、啟動 NAS SMC；UE 收到合法 SMC 才算成功</li>
       </ol>
     </section>
 
@@ -83,37 +91,46 @@
       <h2>白話解釋</h2>
       <aside class="plain">
         <p>總公司寄給分公司一道考題和「標準答案的指紋」。你答完，分公司先比對指紋，再把你的答案送回總公司。</p>
-        <p>總公司親自對過標準答案，才把門禁卡（K<sub>SEAF</sub>）交給分公司，分公司想謊稱「他來過了」也騙不了總公司。</p>
+        <p>總公司親自對過標準答案，才把門禁卡（K<sub>SEAF</sub>）交給分公司，還會記下你在哪通過驗證；分公司想謊稱「他來過了」也騙不了總公司。</p>
       </aside>
     </section>
 
     <section class="slide">
-      <h2>常見考點（1/2）</h2>
+      <h2>常見考點（1/3）</h2>
       <ul class="exam">
-        <li><strong>和 EPS-AKA 最大差別？</strong>home network 的 AUSF 做最終確認</li>
+        <li><strong>和 EPS-AKA 最大差別？</strong>RES* 送回 home network，由 AUSF 最終確認</li>
         <li><strong>為什麼 SEAF 只拿 HXRES*？</strong>能初步檢查，但無法偽造 RES* 騙 AUSF</li>
         <li><strong>手機怎麼確認網路是真的？</strong>用 K 驗證 AUTN 的 MAC，再檢查 SQN 防重放</li>
       </ul>
     </section>
 
     <section class="slide">
-      <h2>常見考點（2/2）</h2>
+      <h2>常見考點（2/3）</h2>
       <ul class="exam">
-        <li><strong>SN name 有什麼用？</strong>綁進 RES*、K<sub>AUSF</sub>，只對該服務網路有效</li>
-        <li><strong>SQN 不同步怎麼辦？</strong>回 Authentication Failure 附 AUTS，重新同步（§6.1.3.3）</li>
-        <li><strong>AUSF 確認後還要做什麼？</strong>通知 UDM 認證結果 <span class="todo">待查證：§6.1.4</span></li>
+        <li><strong>SN name 有什麼用？</strong>「5G:」+ SN Id，綁進 RES* 與金鑰，服務網路無法冒充別人（§6.1.1.3）</li>
+        <li><strong>SQN 不同步怎麼辦？</strong>回 Authentication Failure 附 AUTS，經 AUSF 到 UDM 重新同步（§6.1.3.3）</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（3/3）</h2>
+      <ul class="exam">
+        <li><strong>RES* 比對失敗怎麼辦？</strong>用 SUCI → Authentication Reject；用 5G-GUTI → 改要 SUCI 再試（§6.1.3.2.2）</li>
+        <li><strong>AUSF 確認後還要做什麼？</strong>用 ResultConfirmation 通知 UDM，供之後檢查註冊是否可信（§6.1.4.1a）</li>
       </ul>
     </section>
 
     <section class="slide">
       <h2>參考條文</h2>
       <ul class="refs">
-        <li>TS 33.501 §6.1.3.2：Authentication procedure for 5G AKA（本頁主題）</li>
+        <li>TS 33.501 §6.1.3.2：Authentication procedure for 5G AKA（本頁主題；§6.1.3.2.2 為 RES* 驗證失敗處理）</li>
+        <li>TS 33.501 §6.1.1.3、§6.1.1.4：錨點金鑰與服務網路的綁定、Serving network name 的組成</li>
         <li>TS 33.501 §6.1.2：Initiation of authentication and selection of authentication method</li>
-        <li>TS 33.501 §6.1.3.3：Synchronization failure or MAC failure 的處理 <span class="todo">待查證：條文名稱</span></li>
+        <li>TS 33.501 §6.1.3.3：Synchronization failure or MAC failure</li>
+        <li>TS 33.501 §6.1.4：Linking increased home control to subsequent procedures</li>
         <li>TS 33.501 §6.2：Key hierarchy, key derivation, and distribution scheme</li>
-        <li>TS 33.501 Annex A：K<sub>AUSF</sub>、RES*/XRES*、HRES*/HXRES*、K<sub>SEAF</sub> 的推導函數 <span class="todo">待查證：各子條文編號</span></li>
-        <li>依據來源：<span class="todo">尚未對照原文</span></li>
+        <li>TS 33.501 Annex A.2、A.4、A.5、A.6、A.7：K<sub>AUSF</sub>、RES*/XRES*、HRES*/HXRES*、K<sub>SEAF</sub>、K<sub>AMF</sub> 的推導函數</li>
+        <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§6.1.1–§6.1.4、Annex A）</li>
       </ul>
     </section>
 

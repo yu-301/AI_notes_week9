@@ -35,7 +35,7 @@
         <dt>SUCI <span class="term-full">Subscription Concealed Identifier</span></dt>
         <dd>SUPI 加密後的版本</dd>
         <dt>5G-GUTI <span class="term-full">5G Globally Unique Temporary Identifier</span></dt>
-        <dd>認證後網路分配的臨時身分</dd>
+        <dd>NAS 安全啟動後才分配的臨時身分</dd>
         <dt>SIDF <span class="term-full">Subscription Identifier De-concealing Function</span></dt>
         <dd>在 UDM 裡，持有私鑰、負責解開 SUCI</dd>
         <dt>ECIES <span class="term-full">Elliptic Curve Integrated Encryption Scheme</span></dt>
@@ -49,12 +49,12 @@
         <table class="spec-table">
           <thead><tr><th>欄位</th><th>內容</th><th>加密？</th></tr></thead>
           <tbody>
-            <tr><td>SUPI Type</td><td>IMSI 或 NAI</td><td>否</td></tr>
+            <tr><td>SUPI Type</td><td>IMSI 或 NAI 格式識別碼</td><td>否</td></tr>
             <tr><td>Home Network Identifier</td><td>MCC + MNC</td><td>否</td></tr>
-            <tr><td>Routing Indicator</td><td>導向正確的 UDM</td><td>否</td></tr>
-            <tr><td>Protection Scheme ID</td><td>0 = Null、1 = Profile A、2 = Profile B</td><td>否</td></tr>
+            <tr><td>Routing Indicator</td><td>找到正確的 UDM instance</td><td>否</td></tr>
+            <tr><td>Protection Scheme ID</td><td>0x0 = Null、0x1 = Profile A、0x2 = Profile B</td><td>否</td></tr>
             <tr><td>Home Network Public Key ID</td><td>用哪一把公鑰</td><td>否</td></tr>
-            <tr><td>Scheme Output</td><td>臨時公鑰 + 加密 MSIN + MAC tag</td><td>是</td></tr>
+            <tr><td>Scheme Output</td><td>臨時公鑰 + 加密 MSIN／username + MAC tag</td><td>是</td></tr>
           </tbody>
         </table>
       </div>
@@ -63,10 +63,10 @@
     <section class="slide">
       <h2>運作流程（1/2）：手機端</h2>
       <ol class="flow">
-        <li><span class="actor">電信業者（事前配置）</span>公鑰寫進 USIM，私鑰只放在 SIDF</li>
+        <li><span class="actor">電信業者（事前配置）</span>公鑰安全配置到 USIM，私鑰只留在 home network</li>
         <li><span class="actor">UE</span>每次產生全新的臨時金鑰對</li>
         <li><span class="actor">UE</span>ECDH + KDF 推導出加密金鑰與 MAC 金鑰</li>
-        <li><span class="actor">UE</span>只加密 MSIN、附上 MAC，組成 SUCI 送出</li>
+        <li><span class="actor">UE</span>只加密 MSIN（或 username）、附上 MAC，組成 SUCI 送出</li>
       </ol>
     </section>
 
@@ -75,7 +75,7 @@
       <ol class="flow" start="5">
         <li><span class="actor">AMF/SEAF → AUSF → UDM</span>依明文 MCC/MNC 把 SUCI 轉回 home network</li>
         <li><span class="actor">UDM 中的 SIDF</span>用私鑰驗證 MAC、解出 SUPI，進行認證</li>
-        <li><span class="actor">認證成功後</span>服務網路取得 SUPI 並分配 5G-GUTI</li>
+        <li><span class="actor">認證成功後</span>服務網路取得 SUPI，NAS 安全啟動後才分配 5G-GUTI</li>
       </ol>
     </section>
 
@@ -99,18 +99,19 @@
     <section class="slide">
       <h2>常見考點（2/2）</h2>
       <ul class="exam">
-        <li><strong>SUCI 由誰計算？</strong>USIM 或 ME，由 home network 業者決定</li>
-        <li><strong>Null scheme 何時用？風險？</strong>沒配置公鑰、未認證緊急通話；等同明文</li>
-        <li><strong>SUPI、SUCI、5G-GUTI 差別？</strong>永久身分／加密版本／認證後的臨時身分</li>
+        <li><strong>SUCI 由誰計算？</strong>USIM 或 ME，由業者決定；ME 依 USIM 的優先清單選方案</li>
+        <li><strong>Null scheme 何時用？風險？</strong>未認證緊急通話、業者設定、沒配公鑰；等同明文</li>
+        <li><strong>SUPI、SUCI、5G-GUTI 差別？</strong>永久身分／加密版本／NAS 安全啟動後的臨時身分</li>
       </ul>
     </section>
 
     <section class="slide">
       <h2>參考條文</h2>
       <ul class="refs">
-        <li>TS 33.501 §6.12：Subscription identifier privacy</li>
+        <li>TS 33.501 §6.12：Subscription identifier privacy（§6.12.2 SUCI、§6.12.3 5G-GUTI、§6.12.4 身分查詢程序、§6.12.5 SIDF）</li>
         <li>TS 33.501 Annex C：Protection schemes for concealing the SUPI</li>
         <li>TS 23.003：SUCI 欄位格式 <span class="todo">待查證：子條文編號</span></li>
+        <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§6.12、Annex C）</li>
       </ul>
     </section>
 

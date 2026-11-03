@@ -23,8 +23,8 @@
 
     <h2>為什麼需要</h2>
     <p>手機連上網路前，雙方都要確認對方是真的：網路要確認這張 SIM 卡是合法用戶，手機也要確認自己不是連到假基地台。這就是認證與金鑰協商（Authentication and Key Agreement，AKA）要做的事，同時還要產生後續加密用的金鑰。</p>
-    <p>4G 的 EPS-AKA 有一個缺點：home network 把認證向量交給拜訪網路（MME）後，<strong>比對結果完全由拜訪網路決定</strong>，home network 不會知道手機是否真的有出現。漫遊時，惡意或出錯的拜訪網路可以宣稱「用戶已認證」，藉此冒用身分或灌水帳單。</p>
-    <p>5G-AKA 的改進是<strong>增加 home network 的控制（increased home control）</strong>：拜訪網路只能先做初步檢查，最終要把手機的回應送回 home network 的 AUSF 比對，確認成功後才交出金鑰。</p>
+    <p>4G 的 EPS-AKA 有一個缺點：home network 把認證向量交給拜訪網路（MME）後，<strong>比對結果完全由拜訪網路決定</strong>，home network 拿不到「手機真的有出現並通過認證」的證據。這會讓某些詐騙有機可乘，例如替根本不在該網路的用戶，向 home network 登記服務中的 AMF（§6.1.4.1 舉的例子是偽造的 Nudm_UECM_Registration Request）。</p>
+    <p>5G-AKA 的改進是<strong>增加 home network 的控制（increased home control）</strong>：拜訪網路要把手機的回應 RES* 當作認證確認（Authentication Confirmation）送回 home network 的 AUSF，作為認證成功的證明；AUSF 確認後才交出金鑰（§6.1.3.2.0）。</p>
 
     <h2>關鍵名詞</h2>
     <dl class="terms">
@@ -33,17 +33,17 @@
       <dt>SEAF <span class="term-full">Security Anchor Function</span></dt>
       <dd>位在服務網路的 AMF 裡，負責向手機發出認證請求、做初步比對，並保管 K<sub>SEAF</sub>。</dd>
       <dt>AUSF <span class="term-full">Authentication Server Function</span></dt>
-      <dd>位在 home network，負責最終比對手機回應，並把 K<sub>SEAF</sub> 交給 SEAF。</dd>
+      <dd>位在 home network，負責最終比對手機回應、把結果通知 UDM，並把 K<sub>SEAF</sub> 交給 SEAF。</dd>
       <dt>ARPF <span class="term-full">Authentication credential Repository and Processing Function</span></dt>
       <dd>位在 UDM 裡，保存長期金鑰 K，負責產生認證向量。</dd>
       <dt>RAND / AUTN <span class="term-full">Random Challenge / Authentication Token</span></dt>
       <dd>RAND 是網路出的隨機題目；AUTN 讓 USIM 驗證「題目確實來自 home network，而且不是舊的」。</dd>
       <dt>RES* / XRES* <span class="term-full">Response / Expected Response</span></dt>
-      <dd>RES* 是手機算出的答案；XRES* 是 home network 事先算好的標準答案。</dd>
+      <dd>RES* 是手機由 RES、RAND 與服務網路名稱算出的答案；XRES* 是 home network 用同樣方式事先算好的標準答案（Annex A.4）。</dd>
       <dt>HRES* / HXRES* <span class="term-full">Hash of RES* / Hash of XRES*</span></dt>
-      <dd>上面兩者的雜湊值，讓 SEAF 能初步比對答案，卻拿不到標準答案本身。</dd>
+      <dd>把 RAND 和 (X)RES* 接起來做 SHA-256 取 128 bits（Annex A.5），讓 SEAF 能初步比對答案，卻拿不到標準答案本身。</dd>
       <dt>K<sub>AUSF</sub> / K<sub>SEAF</sub> <span class="term-full">Key for AUSF / Key for SEAF</span></dt>
-      <dd>由 CK、IK 推導出的金鑰；K<sub>SEAF</sub> 是服務網路的錨點金鑰，再往下推導出 K<sub>AMF</sub>。</dd>
+      <dd>K<sub>AUSF</sub> 由 CK||IK 與服務網路名稱推導（Annex A.2）；K<sub>SEAF</sub> 再由 K<sub>AUSF</sub> 推導（Annex A.6），是服務網路的錨點金鑰，往下推出 K<sub>AMF</sub>。</dd>
     </dl>
 
     <div class="table-wrap">
@@ -54,49 +54,54 @@
         <tbody>
           <tr><td>誰判定認證成功</td><td>拜訪網路的 MME 自行判定</td><td>SEAF 初步比對，home network 的 AUSF 最終確認</td></tr>
           <tr><td>拜訪網路拿到的期望答案</td><td>XRES（明文）</td><td>只有 HXRES*（雜湊值）</td></tr>
-          <tr><td>手機的回應</td><td>RES</td><td>RES*（由 RES 加上服務網路名稱推導）</td></tr>
-          <tr><td>金鑰與服務網路綁定</td><td>K<sub>ASME</sub> 綁定 SN ID</td><td>RES*、K<sub>AUSF</sub> 綁定服務網路名稱（SN name）</td></tr>
-          <tr><td>拜訪網路取得 K<sub>SEAF</sub> 的時機</td><td>認證向量中直接附上 K<sub>ASME</sub></td><td>AUSF 確認成功後才給</td></tr>
+          <tr><td>手機的回應</td><td>RES</td><td>RES*（由 RES、RAND 加上服務網路名稱推導）</td></tr>
+          <tr><td>金鑰與服務網路綁定</td><td>K<sub>ASME</sub> 綁定 SN ID</td><td>RES*、K<sub>AUSF</sub>、K<sub>SEAF</sub> 都綁定服務網路名稱（§6.1.1.3）</td></tr>
+          <tr><td>拜訪網路取得錨點金鑰的時機</td><td>認證向量中直接附上 K<sub>ASME</sub></td><td>AUSF 確認成功後才給 K<sub>SEAF</sub></td></tr>
+          <tr><td>一次可拿幾組認證向量</td><td>可一次拿多組備用</td><td>每次只拿一組，SEAF 也不能預先抓取</td></tr>
         </tbody>
       </table>
     </div>
 
     <h2>運作流程</h2>
     <ol class="flow">
-      <li><span class="actor">SEAF</span>手機要註冊時，SEAF 向 AUSF 發起認證，帶上 SUCI（或 SUPI）與服務網路名稱（SN name）。</li>
-      <li><span class="actor">AUSF</span>確認這個 SEAF 有權使用該 SN name，再把請求轉給 UDM/ARPF。</li>
-      <li><span class="actor">UDM/ARPF</span>若收到 SUCI 就先由 SIDF 解出 SUPI，選擇 5G-AKA 後產生 5G HE AV（RAND、AUTN、XRES*、K<sub>AUSF</sub>）回給 AUSF。</li>
-      <li><span class="actor">AUSF</span>保存 XRES*，從 K<sub>AUSF</sub> 推出 K<sub>SEAF</sub>、從 XRES* 算出 HXRES*；只把 5G SE AV（RAND、AUTN、HXRES*）交給 SEAF。</li>
+      <li><span class="actor">SEAF</span>向 AUSF 送出 Nausf_UEAuthentication_Authenticate Request，帶上 SUCI（持有有效 5G-GUTI 的重新認證則用 SUPI）與服務網路名稱（SN name）。</li>
+      <li><span class="actor">AUSF</span>確認這個 SEAF 有權使用該 SN name，不符就回覆「serving network not authorized」；通過後把請求轉給 UDM/ARPF。</li>
+      <li><span class="actor">UDM/ARPF</span>若收到 SUCI 就先由 SIDF 解出 SUPI，再依 SUPI 選擇認證方法。選了 5G-AKA 就產生 AMF separation bit 為 1 的認證向量，組成 5G HE AV（RAND、AUTN、XRES*、K<sub>AUSF</sub>）回給 AUSF。</li>
+      <li><span class="actor">AUSF</span>暫存 XRES*（連同 SUCI 或 SUPI），算出 HXRES* 與 K<sub>SEAF</sub>；接著拿掉 K<sub>SEAF</sub>，只把 5G SE AV（RAND、AUTN、HXRES*）交給 SEAF。</li>
       <li><span class="actor">SEAF</span>透過 NAS Authentication Request 把 RAND、AUTN、ngKSI、ABBA 送給手機。</li>
-      <li><span class="actor">UE（USIM + ME）</span>USIM 驗證 AUTN 確認網路真偽與新鮮度，並算出 RES、CK、IK；ME 再由 RES 推出 RES*，並推導 K<sub>AUSF</sub>、K<sub>SEAF</sub>。</li>
-      <li><span class="actor">SEAF</span>收到 RES* 後算出 HRES* 與 HXRES* 比對，相符就代表服務網路端認證成功，接著把 RES* 轉給 AUSF。</li>
-      <li><span class="actor">AUSF</span>比對 RES* 與 XRES*，相符就代表 home network 端認證成功，把 K<sub>SEAF</sub>（若一開始用 SUCI，也附上 SUPI）交給 SEAF，SEAF 再推導出 K<sub>AMF</sub>。</li>
+      <li><span class="actor">UE（USIM + ME）</span>USIM 驗證 AUTN 確認網路真偽與新鮮度，算出 RES、CK、IK；ME 再算出 RES*、K<sub>AUSF</sub>、K<sub>SEAF</sub>，並檢查 AUTN 裡的 separation bit 是否為 1，最後以 Authentication Response 回傳 RES*。</li>
+      <li><span class="actor">SEAF</span>算出 HRES* 與 HXRES* 比對，相符就代表從服務網路的角度認證成功。不論結果如何，SEAF 都會把 RES* 轉給 AUSF 作為認證確認（§6.1.3.2.2）。</li>
+      <li><span class="actor">AUSF</span>比對 RES* 與 XRES*（也可以檢查 5G AV 是否過期），相符就代表從 home network 的角度認證成功，並把結果通知 UDM。成功時才把 K<sub>SEAF</sub>（若一開始用 SUCI，也附上 SUPI）交給 SEAF。</li>
+      <li><span class="actor">SEAF / AMF</span>SEAF 由 K<sub>SEAF</sub>、ABBA 與 SUPI 推導出 K<sub>AMF</sub> 交給 AMF，AMF 接著啟動 NAS Security Mode Command（§6.7.2）。UE 收到合法的 Security Mode Command，才認定這次認證成功。</li>
     </ol>
 
     <h2>白話解釋</h2>
     <aside class="plain">
-      <p>想像你出國去分公司辦事，分公司要確認你是本人。總公司寄給分公司一道考題，以及「標準答案的指紋」，但不給標準答案本身。你答完題，分公司先比對指紋，覺得沒問題，再把你的答案送回總公司。</p>
-      <p>總公司親自對過標準答案，確定是你本人，才把分公司的門禁卡（K<sub>SEAF</sub>）交出去。這樣分公司就算想謊稱「他來過了」，沒有你的真實答案也騙不了總公司。</p>
+      <p>想像你出國去分公司辦事，分公司要確認你是本人。總公司寄給分公司一道考題，以及「標準答案的指紋」，但不給標準答案本身。你答完題，分公司先比對指紋，再把你的答案送回總公司。</p>
+      <p>總公司親自對過標準答案，確定是你本人，才把分公司的門禁卡（K<sub>SEAF</sub>）交出去，還會記下「你哪天在哪間分公司通過驗證」。這樣分公司就算想謊稱「他來過了」，沒有你的真實答案也騙不了總公司。</p>
     </aside>
 
     <h2>常見考點</h2>
     <ul class="exam">
-      <li><strong>5G-AKA 和 4G EPS-AKA 最大的差別？</strong>增加 home network 控制：最終比對由 home network 的 AUSF 完成，拜訪網路不能自行宣稱認證成功。</li>
+      <li><strong>5G-AKA 和 4G EPS-AKA 最大的差別？</strong>增加 home network 控制：拜訪網路要把 RES* 送回 home network 當作認證確認，由 AUSF 做最終比對，拜訪網路不能自行宣稱認證成功。</li>
       <li><strong>為什麼 SEAF 只拿到 HXRES*，不直接拿 XRES*？</strong>讓 SEAF 能先初步檢查手機的答案，但它不知道標準答案，所以無法偽造 RES* 去騙 AUSF。</li>
       <li><strong>手機怎麼確認網路是真的？</strong>USIM 用長期金鑰 K 驗證 AUTN 中的 MAC，確認題目來自 home network；再檢查 SQN 確認不是重放的舊題目，因此是雙向認證。</li>
-      <li><strong>服務網路名稱（SN name）有什麼用？</strong>它被放進 RES*、K<sub>AUSF</sub> 的推導中，使答案和金鑰只對這個服務網路有效，換一個網路就不能沿用。</li>
-      <li><strong>USIM 發現 SQN 不同步怎麼辦？</strong>手機回傳 Authentication Failure 並附上 AUTS，由 home network 重新同步 SQN 後再認證（§6.1.3.3）。</li>
-      <li><strong>AUSF 確認成功後還要做什麼？</strong>通知 UDM 認證結果，讓 home network 之後能把這次認證與後續程序連結起來 <span class="todo">待查證：§6.1.4</span>。</li>
+      <li><strong>服務網路名稱（SN name）有什麼用？</strong>SN name 是「5G:」加上 SN Id，被放進 RES*、K<sub>AUSF</sub>、K<sub>SEAF</sub> 的推導。答案和金鑰因此只對這個服務網路有效，一個服務網路也無法冒充另一個（隱含的服務網路認證，§6.1.1.3）。</li>
+      <li><strong>USIM 發現 SQN 不同步怎麼辦？</strong>手機回 Authentication Failure 並附上 USIM 給的 AUTS。SEAF 把 RAND、AUTS 和 synchronisation failure indication 經 AUSF 送到 UDM/ARPF，重新同步後產生新向量再認證（§6.1.3.3）。</li>
+      <li><strong>RES* 比對失敗怎麼辦？</strong>如果手機一開始用 SUCI，SEAF 就回 Authentication Reject；如果用 5G-GUTI，SEAF/AMF 改發 Identification 程序要求 SUCI，可以再試一次認證（§6.1.3.2.2）。</li>
+      <li><strong>AUSF 確認成功後還要做什麼？</strong>用 Nudm_UEAuthentication_ResultConfirmation 通知 UDM（含 SUPI、時間戳記、認證類型、SN name）。UDM 記下後，之後收到 AMF 的 Nudm_UECM_Registration 時，就能檢查這個用戶是否真的認證過（§6.1.4.1a）。</li>
     </ul>
 
     <h2>參考條文</h2>
     <ul class="refs">
-      <li>TS 33.501 §6.1.3.2：Authentication procedure for 5G AKA（本頁主題）</li>
+      <li>TS 33.501 §6.1.3.2：Authentication procedure for 5G AKA（本頁主題；§6.1.3.2.2 為 RES* 驗證失敗處理）</li>
+      <li>TS 33.501 §6.1.1.3、§6.1.1.4：錨點金鑰與服務網路的綁定、Serving network name 的組成</li>
       <li>TS 33.501 §6.1.2：Initiation of authentication and selection of authentication method</li>
-      <li>TS 33.501 §6.1.3.3：Synchronization failure or MAC failure 的處理 <span class="todo">待查證：條文名稱</span></li>
+      <li>TS 33.501 §6.1.3.3：Synchronization failure or MAC failure</li>
+      <li>TS 33.501 §6.1.4：Linking increased home control to subsequent procedures</li>
       <li>TS 33.501 §6.2：Key hierarchy, key derivation, and distribution scheme</li>
-      <li>TS 33.501 Annex A：K<sub>AUSF</sub>、RES*/XRES*、HRES*/HXRES*、K<sub>SEAF</sub> 的推導函數 <span class="todo">待查證：各子條文編號</span></li>
-      <li>依據來源：<span class="todo">尚未對照原文</span></li>
+      <li>TS 33.501 Annex A.2、A.4、A.5、A.6、A.7：K<sub>AUSF</sub>、RES*/XRES*、HRES*/HXRES*、K<sub>SEAF</sub>、K<sub>AMF</sub> 的推導函數</li>
+      <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§6.1.1–§6.1.4、Annex A）</li>
     </ul>
   </main>
 </body>
