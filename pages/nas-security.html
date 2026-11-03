@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NAS 安全機制｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="wrap topic">
+    <a class="back" href="../index.html">← 回目錄</a>
+
+    <header class="topic-head">
+      <span class="topic-clause">§6.4</span>
+      <h1>NAS 安全機制</h1>
+      <p class="topic-summary">UE 與 AMF 之間的 NAS 訊號同時有完整性與加密保護，並靠 NAS COUNT 防止重放攻擊。</p>
+      <p class="topic-meta">TS 33.501 Rel-18｜更新於 <time datetime="2026-11-03">2026-11-03</time></p>
+      <p class="topic-links"><a href="../slides/nas-security.html">看簡報版</a></p>
+    </header>
+
+    <h2>為什麼需要</h2>
+    <p>非接取層（Non-Access Stratum，NAS）是 UE 和核心網路 AMF 之間的控制訊號，走 N1 參考點，負責註冊、移動管理、身分查詢，甚至 SMS over NAS。這些訊息會經過空中介面和基地台，攻擊者如果能竄改、偽造或重放它們，就能把手機的安全能力降級，或冒充網路下指令。</p>
+    <p>所以 NAS 訊息需要三種保護：<strong>完整性</strong>（訊息沒被改過、確實來自對方）、<strong>機密性</strong>（內容看不到）、<strong>重放保護</strong>（舊訊息不能再送一次）。保護的端點是 UE 和 AMF，基地台只負責轉送，看不到也改不了 NAS 內容（§6.4.1）。</p>
+    <p>4G 的 EPS 也有 NAS 安全，5G 沿用相同的 128-bit 演算法（Annex D）。5G 另外處理了兩件事：手機可同時從 3GPP 和非 3GPP 接取連上 AMF（§6.4.2），以及連「第一個」NAS 訊息也盡量保護（§6.4.6）。</p>
+
+    <h2>關鍵名詞</h2>
+    <dl class="terms">
+      <dt>NAS <span class="term-full">Non Access Stratum</span></dt>
+      <dd>UE 與 AMF 之間的控制訊號層，經 N1 參考點傳送。</dd>
+      <dt>K<sub>NASint</sub> / K<sub>NASenc</sub> <span class="term-full">NAS integrity key / NAS encryption key</span></dt>
+      <dd>由 K<sub>AMF</sub> 推出，分別只用於 NAS 完整性與 NAS 加密（見金鑰階層那頁）。</dd>
+      <dt>NIA / NEA <span class="term-full">Integrity Algorithm for 5G / Encryption Algorithm for 5G</span></dt>
+      <dd>5G 的完整性與加密演算法：128-NIA1～3、128-NEA1～3，和 4G 的 128-EIA／EEA1～3 相同；NIA0、NEA0 是不提供保護的空演算法（Annex D）。</dd>
+      <dt>NAS-MAC <span class="term-full">NAS Message Authentication Code</span></dt>
+      <dd>用 NIA 對 NAS 訊息算出的 32-bit 驗證碼，附在訊息後面；接收方重算比對。</dd>
+      <dt>NAS COUNT <span class="term-full">NAS Count</span></dt>
+      <dd>24-bit 計數器 = 16-bit NAS OVERFLOW + 8-bit NAS SQN；只有 NAS SQN 會放在訊息裡。上行、下行各一個。</dd>
+      <dt>NAS connection identifier <span class="term-full">NAS 連線識別碼</span></dt>
+      <dd>區分同一個 AMF 下的不同 NAS 連線：3GPP 接取為 0x01、非 3GPP 接取為 0x02，當作演算法的 BEARER 輸入。</dd>
+      <dt>NAS SMC <span class="term-full">NAS Security Mode Command</span></dt>
+      <dd>AMF 用來選定 NAS 演算法、啟動 NAS 安全的程序（§6.7.2）。</dd>
+      <dt>cleartext IEs / NAS container <span class="term-full">明文資訊元素 / NAS 容器</span></dt>
+      <dd>初始 NAS 訊息中必須明文送出的少數欄位；其餘完整訊息則加密後放進 NAS container（§6.4.6）。</dd>
+    </dl>
+
+    <div class="table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr><th>演算法輸入</th><th>完整性（NIA）</th><th>加密（NEA）</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>KEY</td><td>K<sub>NASint</sub></td><td>K<sub>NASenc</sub></td></tr>
+          <tr><td>BEARER</td><td colspan="2">NAS connection identifier（3GPP 0x01、非 3GPP 0x02）</td></tr>
+          <tr><td>DIRECTION</td><td colspan="2">上行為 0、下行為 1</td></tr>
+          <tr><td>COUNT</td><td colspan="2">0x00 || NAS COUNT（補成 32 bits）</td></tr>
+          <tr><td>LENGTH</td><td>不需要</td><td>要產生的金鑰流長度</td></tr>
+          <tr><td>輸出</td><td>32-bit NAS-MAC</td><td>金鑰流，和明文逐位元相加得到密文</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>運作流程</h2>
+    <ol class="flow">
+      <li><span class="actor">UE</span>從 idle 狀態送出初始 NAS 訊息（例如 Registration Request）。沒有 NAS 安全上下文時，只放 cleartext IEs：SUCI 或 GUTI、UE 安全能力、ngKSI 等。</li>
+      <li><span class="actor">UE</span>如果已有 NAS 安全上下文，cleartext IEs 照樣明文，完整的初始訊息則加密放進 NAS container，整則訊息再做完整性保護。AMF 若持有相同上下文且驗證通過，可省略第 3～6 步。</li>
+      <li><span class="actor">AMF</span>找不到安全上下文，或完整性檢查失敗時，就對 UE 發起主要認證（§6.1.3）。</li>
+      <li><span class="actor">AMF</span>先啟動 NAS 完整性保護，再送出 NAS Security Mode Command：內含重播回來的 UE 安全能力、選定的 NAS 演算法與 ngKSI，只做完整性保護、不加密。送出後 AMF 開始對上行訊息解密。</li>
+      <li><span class="actor">UE</span>驗證 SMC 的完整性，並比對 UE 安全能力是否與自己當初送的一致。都通過就啟動 NAS 完整性與加密；失敗則回 Security Mode Reject。</li>
+      <li><span class="actor">UE</span>回傳加密且有完整性保護的 NAS Security Mode Complete。若 AMF 要求，或初始訊息原本沒有保護，就把完整的初始 NAS 訊息放在 NAS container 裡一起送。</li>
+      <li><span class="actor">AMF</span>驗證 Security Mode Complete 後開始下行加密，並以 container 中的完整初始訊息為準，回覆加密且有完整性保護的回應。</li>
+      <li><span class="actor">UE / AMF</span>之後每則 NAS 訊息都用 NAS COUNT 當輸入算 NAS-MAC 並加密。接收方每個 NAS COUNT 只接受一次，完整性檢查失敗的訊息原則上直接丟棄（§6.4.3.3）。</li>
+    </ol>
+
+    <h2>白話解釋</h2>
+    <aside class="plain">
+      <p>把 NAS 訊息想成你和總務處（AMF）之間的公文，中間由櫃台（基地台）轉交。每份公文都裝進只有你們倆打得開的信封（加密），封口蓋上專屬印章（NAS-MAC），信封上再寫流水號（NAS COUNT）。總務處看到重複的流水號就退件，所以有人把舊公文影印再送一次也沒用。</p>
+      <p>第一次來洽公時，信封外只寫你的代號和「我會用哪些鎖」，正式內容封在裡面。總務處回信時會把「你說你會用的鎖」再念一次給你聽，如果和你當初說的不一樣，就代表中間有人動過手腳。</p>
+    </aside>
+
+    <h2>常見考點</h2>
+    <ul class="exam">
+      <li><strong>NAS 安全保護的是哪兩端？</strong>UE 與 AMF（N1 參考點）。基地台只轉送 NAS 訊息；UE 與 gNB 之間的 RRC、UP 是另外的 AS 安全（§6.5、§6.6）。</li>
+      <li><strong>NAS COUNT 由什麼組成？</strong>24 bits = 16-bit NAS OVERFLOW + 8-bit NAS SQN，只有 NAS SQN 會隨訊息傳送。送進演算法時前面補 0x00 成 32-bit COUNT（§6.4.3.1）。</li>
+      <li><strong>為什麼 NAS COUNT 不能隨便歸零？</strong>同一把 K<sub>AMF</sub> 下若歸零，相同的金鑰配上相同的 COUNT 會讓金鑰流重複使用，例如 UE 在兩個 AMF 之間來回、又推出同一組 NAS 金鑰時。所以只有產生新的 K<sub>AMF</sub> 時，NAS COUNT 才從 0 開始（§6.4.5）。</li>
+      <li><strong>UE 同時從 3GPP 和非 3GPP 連到同一個 AMF 時怎麼辦？</strong>兩條連線共用一個 NAS 安全上下文（金鑰、演算法），但各有自己的 NAS connection identifier（0x01／0x02）和一組上下行 NAS COUNT。如果連到不同 PLMN，則維護兩套獨立的上下文（§6.4.2）。</li>
+      <li><strong>初始 NAS 訊息怎麼保護？</strong>沒有安全上下文時只送 cleartext IEs；有的話，完整訊息加密放進 NAS container，整則做完整性保護（§6.4.6）。</li>
+      <li><strong>NAS SMC 怎麼防降級攻擊？</strong>SMC 把 UE 在 Registration Request 中送出的安全能力重播給 UE。攻擊者若竄改過，UE 比對時就會發現，驗證失敗（§6.7.2）。</li>
+      <li><strong>完整性保護啟用後可以改回 NULL 嗎？</strong>不行。NAS 完整性一旦啟用，就一直有效到安全上下文被刪除，不能從非 NULL 演算法換成 NULL；選 NIA0 時也不會啟用重放保護（§6.4.3.2）。</li>
+    </ul>
+
+    <h2>參考條文</h2>
+    <ul class="refs">
+      <li>TS 33.501 §6.4：NAS security mechanisms（本頁主題）</li>
+      <li>TS 33.501 §6.4.2：Security for multiple NAS connections</li>
+      <li>TS 33.501 §6.4.3、§6.4.4：NAS integrity／confidentiality mechanisms</li>
+      <li>TS 33.501 §6.4.5：Handling of NAS COUNTs</li>
+      <li>TS 33.501 §6.4.6：Protection of initial NAS message</li>
+      <li>TS 33.501 §6.7.2：NAS security mode command procedure</li>
+      <li>TS 33.501 Annex D：Algorithms for ciphering and integrity protection</li>
+      <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§6.4、§6.7.2、Annex D）</li>
+    </ul>
+  </main>
+</body>
+</html>

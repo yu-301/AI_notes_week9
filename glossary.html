@@ -84,12 +84,32 @@
         <dd>服務網路的錨點金鑰，認證成功後才交給 SEAF，再推導出 K<sub>AMF</sub>。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
       </div>
       <div class="term">
+        <dt id="term-nas">NAS <span class="term-full">Non Access Stratum</span></dt>
+        <dd>UE 與 AMF 之間的控制訊號層，負責註冊、移動管理等。<a href="pages/nas-security.html">出處：NAS 安全機制</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-nas-count">NAS COUNT <span class="term-full">NAS Count</span></dt>
+        <dd>16-bit NAS OVERFLOW 加 8-bit NAS SQN 的計數器，用來防重放。<a href="pages/nas-security.html">出處：NAS 安全機制</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-nas-mac">NAS-MAC <span class="term-full">NAS Message Authentication Code</span></dt>
+        <dd>用 NIA 對 NAS 訊息算出的 32-bit 驗證碼。<a href="pages/nas-security.html">出處：NAS 安全機制</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-nea">NEA <span class="term-full">Encryption Algorithm for 5G</span></dt>
+        <dd>5G 的加密演算法，128-NEA1～3；NEA0 為不加密的空演算法。<a href="pages/nas-security.html">出處：NAS 安全機制</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-ngksi">ngKSI <span class="term-full">Key Set Identifier in 5G</span></dt>
         <dd>K<sub>AMF</sub> 的識別碼，讓 UE 與 AMF 不用重新認證就能指認安全上下文。<a href="pages/key-hierarchy.html">出處：5G 金鑰階層與金鑰推導</a></dd>
       </div>
       <div class="term">
         <dt id="term-nh">NH <span class="term-full">Next Hop</span></dt>
         <dd>AMF 推出的中間金鑰，換手時用來產生新的 K<sub>gNB</sub>，提供前向安全。<a href="pages/key-hierarchy.html">出處：5G 金鑰階層與金鑰推導</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-nia">NIA <span class="term-full">Integrity Algorithm for 5G</span></dt>
+        <dd>5G 的完整性演算法，128-NIA1～3；NIA0 為不保護的空演算法。<a href="pages/nas-security.html">出處：NAS 安全機制</a></dd>
       </div>
       <div class="term">
         <dt id="term-rand">RAND <span class="term-full">Random Challenge</span></dt>
@@ -106,6 +126,10 @@
       <div class="term">
         <dt id="term-sidf">SIDF <span class="term-full">Subscription Identifier De-concealing Function</span></dt>
         <dd>位在 UDM 內、持有私鑰，負責把 SUCI 解回 SUPI。<a href="pages/suci-supi-concealment.html">出處：SUPI 隱藏與 SUCI</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-smc">SMC <span class="term-full">Security Mode Command</span></dt>
+        <dd>選定演算法並啟動安全保護的程序，NAS 與 AS 各有一個。<a href="pages/nas-security.html">出處：NAS 安全機制</a></dd>
       </div>
       <div class="term">
         <dt id="term-suci">SUCI <span class="term-full">Subscription Concealed Identifier</span></dt>
