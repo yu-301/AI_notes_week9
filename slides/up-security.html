@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>使用者平面（UP）安全與完整性保護（簡報）｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="deck">
+    <section class="slide slide-cover">
+      <span class="topic-clause">§6.6</span>
+      <h1>使用者平面（UP）安全與完整性保護</h1>
+      <p class="topic-summary">5G 讓使用者資料也能做完整性保護：SMF 依 PDU session 下政策，基地台再逐條 DRB 啟用加密與完整性。</p>
+    </section>
+
+    <section class="slide">
+      <h2>為什麼需要</h2>
+      <ul>
+        <li>UP 是使用者真正傳的資料，由 PDCP 層保護</li>
+        <li>只加密防不了竄改：密文翻位元，明文跟著翻</li>
+        <li>4G 的 UP 只加密，曾被 aLTEr 竄改 DNS（<span class="todo">待查證</span>）</li>
+        <li>5G：UE、gNB <strong>必須支援</strong> UP 完整性，<strong>是否使用</strong>看政策</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>關鍵名詞</h2>
+      <dl class="terms">
+        <dt>UP <span class="term-full">User Plane</span></dt>
+        <dd>承載使用者資料</dd>
+        <dt>DRB <span class="term-full">Data Radio Bearer</span></dt>
+        <dd>資料無線承載，逐條啟用保護</dd>
+        <dt>SMF <span class="term-full">Session Management Function</span></dt>
+        <dd>管 PDU session、下政策</dd>
+        <dt>UP 安全政策 <span class="term-full">UP security policy</span></dt>
+        <dd>加密／完整性要不要開</dd>
+        <dt>MAC-I <span class="term-full">Message Authentication Code for Integrity</span></dt>
+        <dd>PDCP 封包的完整性驗證碼</dd>
+      </dl>
+    </section>
+
+    <section class="slide">
+      <h2>UP 安全政策的三種值</h2>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>值</th><th>基地台的處理</th></tr></thead>
+          <tbody>
+            <tr><td>Required</td><td>一定啟用；做不到就拒絕並回報 SMF</td></tr>
+            <tr><td>Preferred</td><td>基地台決定；換手後可能改變</td></tr>
+            <tr><td>Not needed</td><td>不啟用，session 照常建立</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>4G 與 5G 的 UP 保護</h2>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>項目</th><th>4G</th><th>5G</th></tr></thead>
+          <tbody>
+            <tr><td>UP 加密</td><td>有</td><td>必須支援，依政策啟用</td></tr>
+            <tr><td>UP 完整性</td><td>沒有（<span class="todo">待查證</span>）</td><td>必須支援，依政策啟用，不得用 NIA0</td></tr>
+            <tr><td>支援速率</td><td>—</td><td>UE 最高速率下也要能做</td></tr>
+            <tr><td>啟用單位</td><td>—</td><td>政策以 PDU session，啟用以 DRB</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（1/2）：政策下達</h2>
+      <ol class="flow">
+        <li><span class="actor">SMF</span>建立 PDU session 時送出 UP 安全政策</li>
+        <li><span class="actor">gNB</span>Required 做不到就拒絕；ng-eNB 需 UE 支援 EIA7</li>
+        <li><span class="actor">gNB</span>確認 AS SMC 已啟動 RRC 安全</li>
+        <li><span class="actor">gNB</span>RRC Reconfiguration 逐條 DRB 標示保護，需要時推導 UP 金鑰</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（2/2）：啟用與換手</h2>
+      <ol class="flow" start="5">
+        <li><span class="actor">UE</span>驗證 RRC 訊息，推導 UP 金鑰並開始保護</li>
+        <li><span class="actor">UE</span>回 RRC Reconfiguration Complete</li>
+        <li><span class="actor">UE / gNB</span>每個封包算 MAC-I，錯誤或缺少就丟棄</li>
+        <li><span class="actor">gNB → SMF</span>換手時傳遞政策，Path-Switch 由 SMF 比對</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>白話解釋</h2>
+      <aside class="plain">
+        <p>4G 的資料像裝在不透明信封裡：看不到內容，卻能用針戳洞改掉某個字，收件人察覺不到。</p>
+        <p>5G 可以再加封口貼紙（MAC-I）。總公司（SMF）決定哪類信一定要貼，郵局（基地台）逐個郵袋（DRB）照辦。</p>
+      </aside>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（1/3）</h2>
+      <ul class="exam">
+        <li><strong>為什麼 4G UP 沒有完整性保護？</strong>嫌 MAC 負擔與運算量大；但加密防不了位元翻轉（<span class="todo">待查證</span>）</li>
+        <li><strong>5G 改成怎樣？</strong>UE、gNB 必須支援（含最高速率），由 SMF 政策決定是否啟用</li>
+        <li><strong>為什麼不是必須使用？</strong>封包變大、運算變重，交給政策決定</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（2/3）</h2>
+      <ul class="exam">
+        <li><strong>UP 完整性能選 NIA0 嗎？</strong>不行，只多 32-bit MAC 沒安全效果</li>
+        <li><strong>Required 做不到？</strong>拒絕 UP 資源並回報 SMF，基地台不得推翻</li>
+        <li><strong>UP 安全何時啟動？</strong>AS SMC 之後，新增 DRB 時逐條啟用</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（3/3）</h2>
+      <ul class="exam">
+        <li><strong>換手怎麼防政策被改？</strong>Path-Switch 時 SMF 比對，不符就送回正確版本</li>
+        <li><strong>ng-eNB 能做 UP 完整性嗎？</strong>UE 設 EIA7 位元才行，可用 NIA 或 EIA</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>參考條文</h2>
+      <ul class="refs">
+        <li>TS 33.501 §6.6：UP security mechanisms（本頁主題）</li>
+        <li>TS 33.501 §6.6.1：UP security policy</li>
+        <li>TS 33.501 §6.6.2：UP security activation mechanism</li>
+        <li>TS 33.501 §6.6.3、§6.6.4：UP confidentiality／integrity mechanisms</li>
+        <li>TS 33.501 §5.2.3、§5.3.3：UE 與 gNB 的 user data and signalling data integrity 要求</li>
+        <li>TS 33.501 §6.7.4：AS security mode command procedure</li>
+        <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§5.2.2–§5.2.3、§5.3.2–§5.3.3、§6.6）；4G 部分<span class="todo">尚未對照原文</span></li>
+      </ul>
+    </section>
+
+    <nav class="deck-bar" aria-label="簡報控制">
+      <a href="../pages/up-security.html">← 回文字版</a>
+      <div class="deck-controls">
+        <button class="deck-prev" type="button">上一張</button>
+        <span class="deck-count" aria-live="polite"></span>
+        <button class="deck-next" type="button">下一張</button>
+      </div>
+    </nav>
+  </main>
+  <script src="../assets/slides.js"></script>
+</body>
+</html>
