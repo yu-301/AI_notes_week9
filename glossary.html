@@ -88,6 +88,10 @@
         <dd>基地台的根金鑰，由 K<sub>AMF</sub> 推出，再推導出 RRC 與 UP 金鑰。<a href="pages/key-hierarchy.html">出處：5G 金鑰階層與金鑰推導</a></dd>
       </div>
       <div class="term">
+        <dt id="term-kng-ran-star">K<sub>NG-RAN</sub>* <span class="term-full">Key for target NG-RAN node</span></dt>
+        <dd>換手時由目前 K<sub>gNB</sub> 或 NH 推出、給目標基地台當新 K<sub>gNB</sub> 的金鑰。<a href="pages/handover-security.html">出處：換手時的安全處理與金鑰推導</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-kseaf">K<sub>SEAF</sub> <span class="term-full">Key for SEAF</span></dt>
         <dd>服務網路的錨點金鑰，認證成功後才交給 SEAF，再推導出 K<sub>AMF</sub>。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
       </div>
@@ -120,6 +124,14 @@
         <dd>用 NIA 對 NAS 訊息算出的 32-bit 驗證碼。<a href="pages/nas-security.html">出處：NAS 安全機制</a></dd>
       </div>
       <div class="term">
+        <dt id="term-nasc">NASC <span class="term-full">NAS Container</span></dt>
+        <dd>N2 換手時目標 AMF 經 HO Command 送給 UE 的 NAS 參數包，作用類似 NAS SMC。<a href="pages/handover-security.html">出處：換手時的安全處理與金鑰推導</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-ncc">NCC <span class="term-full">Next hop Chaining Counter</span></dt>
+        <dd>NH 鏈的編號，UE 靠它判斷換手時該做水平還是垂直推導。<a href="pages/handover-security.html">出處：換手時的安全處理與金鑰推導</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-nea">NEA <span class="term-full">Encryption Algorithm for 5G</span></dt>
         <dd>5G 的加密演算法，128-NEA1～3；NEA0 為不加密的空演算法。<a href="pages/nas-security.html">出處：NAS 安全機制</a></dd>
       </div>
@@ -134,6 +146,10 @@
       <div class="term">
         <dt id="term-nia">NIA <span class="term-full">Integrity Algorithm for 5G</span></dt>
         <dd>5G 的完整性演算法，128-NIA1～3；NIA0 為不保護的空演算法。<a href="pages/nas-security.html">出處：NAS 安全機制</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-pci">PCI <span class="term-full">Physical Cell Identity</span></dt>
+        <dd>目標 cell 的實體識別碼，換手推導新金鑰時會綁進去。<a href="pages/handover-security.html">出處：換手時的安全處理與金鑰推導</a></dd>
       </div>
       <div class="term">
         <dt id="term-pdcp">PDCP <span class="term-full">Packet Data Convergence Protocol</span></dt>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>換手時的安全處理與金鑰推導｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="wrap topic">
+    <a class="back" href="../index.html">← 回目錄</a>
+
+    <header class="topic-head">
+      <span class="topic-clause">§6.9</span>
+      <h1>換手時的安全處理與金鑰推導</h1>
+      <p class="topic-summary">換手時從目前金鑰（水平）或 AMF 的 NH（垂直）推出新金鑰，靠 NCC 同步；垂直推導讓舊基地台算不出新金鑰。</p>
+      <p class="topic-meta">TS 33.501 Rel-18｜更新於 <time datetime="2026-11-08">2026-11-08</time></p>
+      <p class="topic-links"><a href="../slides/handover-security.html">看簡報版</a></p>
+    </header>
+
+    <h2>為什麼需要</h2>
+    <p>手機移動時會從一個基地台換到另一個基地台，這叫換手（handover）。UE 和基地台之間的保護都靠 K<sub>gNB</sub>，所以換手時要回答兩個問題：新基地台用什麼金鑰？舊基地台會不會知道這把金鑰？</p>
+    <p>如果新舊基地台共用同一把金鑰，只要有一台基地台被攻破，手機之後經過的每一台基地台的通訊都會曝光。理想做法是每換一次手就換一把新金鑰，而且舊基地台算不出新金鑰，這就是<strong>前向安全</strong>（forward security）。難處在於換手要快，不可能每次都重新認證。</p>
+    <p>5G 的解法是金鑰鏈：K<sub>NG-RAN</sub>* 可以從目前的 K<sub>gNB</sub> 推（水平），也可以從只有 UE 和 AMF 算得出來的 NH 推（垂直）。4G 也是用 K<sub>eNB</sub>*、NH、NCC 這套設計<span class="todo">待查證</span>；5G 跟 4G 不同的地方是：換手過程會一併同步 NAS 與 AS 安全上下文（§6.9.2.2 NOTE 1），AMF 之間傳遞上下文時也不帶舊的 5G 安全上下文（§6.9.2.3.3）。</p>
+
+    <h2>關鍵名詞</h2>
+    <dl class="terms">
+      <dt>K<sub>NG-RAN</sub>* <span class="term-full">Key for target NG-RAN node</span></dt>
+      <dd>換手時算出的「下一把」基地台金鑰，換手完成後就當成新的 K<sub>gNB</sub> 使用（Annex A.11／A.12）。</dd>
+      <dt>NH <span class="term-full">Next Hop</span></dt>
+      <dd>由 K<sub>AMF</sub> 推出的中間金鑰，只有 UE 和 AMF 算得出來。第一個 NH 用初始 K<sub>gNB</sub> 當輸入，之後每個 NH 都用前一個 NH 當輸入，形成一條鏈（Annex A.10）。</dd>
+      <dt>NCC <span class="term-full">Next hop Chaining Counter</span></dt>
+      <dd>NH 鏈的編號。每把 K<sub>gNB</sub> 都對應一個 NCC；UE 靠它判斷要用哪一個 NH。</dd>
+      <dt>水平金鑰推導 <span class="term-full">Horizontal key derivation</span></dt>
+      <dd>從<strong>目前使用中的 K<sub>gNB</sub></strong> 推出 K<sub>NG-RAN</sub>*。</dd>
+      <dt>垂直金鑰推導 <span class="term-full">Vertical key derivation</span></dt>
+      <dd>從 <strong>AMF 提供的 NH</strong> 推出 K<sub>NG-RAN</sub>*。</dd>
+      <dt>PCI / ARFCN-DL <span class="term-full">Physical Cell Identity / Absolute Radio Frequency Channel Number - Downlink</span></dt>
+      <dd>目標 cell 的實體識別碼與下行頻率；水平或垂直推導時都會綁進金鑰。</dd>
+      <dt>NASC <span class="term-full">NAS Container</span></dt>
+      <dd>N2 換手時目標 AMF 放進 HO Command 的 NAS 參數包，作用類似 NAS SMC。</dd>
+      <dt>水平 K<sub>AMF</sub> 推導 <span class="term-full">Horizontal K<sub>AMF</sub> derivation</span></dt>
+      <dd>換 AMF 時，來源 AMF 依本地政策從目前 K<sub>AMF</sub> 推出新的 K<sub>AMF</sub>（Annex A.13）。這是 NAS 層的事，和上面的 AS 水平推導不同。</dd>
+    </dl>
+
+    <div class="table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr><th>比較項目</th><th>水平金鑰推導</th><th>垂直金鑰推導</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>K<sub>NG-RAN</sub>* 從哪裡推</td><td>目前使用中的 K<sub>gNB</sub></td><td>未使用過的 NH</td></tr>
+          <tr><td>原料從哪來</td><td>來源基地台自己就有</td><td>NH 只有 UE 與 AMF 算得出，由 AMF 交給基地台</td></tr>
+          <tr><td>NCC</td><td>不變</td><td>變大；UE 反覆推算 NH，直到 NCC 一致</td></tr>
+          <tr><td>何時使用</td><td>基地台手上沒有未使用的 {NH, NCC}，例如初始建立後的第一次 Xn 換手</td><td>有未使用的 {NH, NCC} 時，Xn 換手的來源基地台必須用它；N2 換手一律由 AMF 給新 NH</td></tr>
+          <tr><td>都要綁定</td><td colspan="2">目標 PCI 與 ARFCN-DL（Annex A.11／A.12）</td></tr>
+          <tr><td>前向安全</td><td>沒有：來源基地台算得出新金鑰</td><td>有：新 NH 不經過舊基地台</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>運作流程</h2>
+    <div class="table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr><th>換手類型</th><th>誰算 K<sub>NG-RAN</sub>*</th><th>新的 {NH, NCC} 從哪來</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Intra-gNB-CU（§6.9.2.3.1）</td><td>同一個 gNB；依政策也可以保留原 K<sub>gNB</sub>（ng-eNB 不支援保留）</td><td>有未使用的 NH 就垂直，否則水平</td></tr>
+          <tr><td>Xn（§6.9.2.3.2）</td><td>來源基地台算好，交給目標基地台</td><td>換手完成後，AMF 在 Path Switch Ack 中給目標基地台，供下一次換手使用</td></tr>
+          <tr><td>N2（§6.9.2.3.3）</td><td>目標基地台用 AMF 給的 NH 計算</td><td>AMF 收到 HANDOVER REQUIRED 時立刻算出新 NH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ol class="flow">
+      <li><span class="actor">AMF / UE</span>初始建立 AS 安全時，由 K<sub>AMF</sub> 推出 K<sub>gNB</sub>（對應 NCC=0）和第一個 NH（NCC=1）。AMF 只把 K<sub>gNB</sub> 給 gNB，<strong>不給 NH</strong>；gNB 把 NCC 設為 0。</li>
+      <li><span class="actor">來源 gNB</span>Xn 換手時，有未使用的 {NH, NCC} 就做垂直推導，否則做水平推導；兩者都要綁定目標 PCI 與 ARFCN-DL，算出 K<sub>NG-RAN</sub>*。</li>
+      <li><span class="actor">來源 gNB → 目標 gNB</span>把 {K<sub>NG-RAN</sub>*, NCC} 交給目標基地台，目標基地台直接拿來當 K<sub>gNB</sub>。NCC 放進 HO Command，經由來源基地台轉給 UE。</li>
+      <li><span class="actor">UE</span>收到的 NCC 和目前相同，就從目前的 K<sub>gNB</sub> 做水平推導；不同就反覆計算 NH 直到 NCC 一致，再做垂直推導。結果當作新的 K<sub>gNB</sub>。</li>
+      <li><span class="actor">目標 gNB → AMF</span>送 Path Switch Request；AMF 把 NCC 加 1、算出新 NH，在 Path Switch Ack 中回給目標基地台。目標基地台存起來供下次換手，並刪除其他未使用的 {NH, NCC}。</li>
+      <li><span class="actor">來源 AMF</span>N2 換手時，收到 HANDOVER REQUIRED 就把 NCC 加 1、算出新 NH。把 {NH, NCC}、K<sub>AMF</sub>、ngKSI、NAS COUNT 交給目標 AMF；也可依本地政策先做水平 K<sub>AMF</sub> 推導。</li>
+      <li><span class="actor">目標 AMF</span>若 K<sub>AMF</sub> 有換或要換 NAS 演算法，就建立 NASC：內含 K_AMF_change_flag、下行 NAS COUNT、ngKSI、選定演算法和 NAS MAC。連同 {NH, NCC} 放進 HANDOVER REQUEST 給目標基地台。</li>
+      <li><span class="actor">目標 gNB</span>用收到的 NH 加上目標 PCI、ARFCN-DL 算出 K<sub>NG-RAN</sub>* 當 K<sub>gNB</sub>，並把 NCC（以及 NASC，若有）放進 HO Command。</li>
+      <li><span class="actor">UE</span>若有 NASC，先檢查下行 NAS COUNT 沒被重放、驗證 NAS MAC；旗標為 1 就推出新 K<sub>AMF</sub> 並把 NAS COUNT 歸零。驗證失敗就中止換手，沿用舊的 NAS／AS 上下文。</li>
+    </ol>
+
+    <h2>白話解釋</h2>
+    <aside class="plain">
+      <p>把 K<sub>gNB</sub> 想成旅館房卡。<strong>水平推導</strong>像是退房時，櫃台用你現在這張卡加上新房號，直接做一張新卡給你：很快，但舊櫃台知道怎麼做，所以舊櫃台也能複製你的新卡。</p>
+      <p><strong>垂直推導</strong>像是總公司（AMF）先寄一張新的「母卡」（NH）給下一間分館，新房卡由母卡做出來。舊分館從頭到尾沒看過這張母卡，就算它被駭了也進不了你的新房間。NCC 則是母卡上的流水號，你看號碼就知道自己該用第幾張母卡。</p>
+      <p>Xn 換手時，新母卡要等你搬進新分館後才寄到，所以這次的房卡仍是舊分館做的，要再換一次房才真正擺脫舊分館。這就是「兩跳後才有前向安全」。</p>
+    </aside>
+
+    <h2>常見考點</h2>
+    <ul class="exam">
+      <li><strong>水平和垂直金鑰推導差在哪？</strong>水平從目前的 K<sub>gNB</sub> 推，NCC 不變，來源基地台算得出新金鑰，所以沒有前向安全。垂直從 AMF 給的 NH 推，NCC 會變大，NH 只有 UE 和 AMF 算得出，所以有前向安全。兩者都要綁目標 PCI 與 ARFCN-DL（§6.9.2.1.1）。</li>
+      <li><strong>為什麼初始建立後的第一次 Xn 換手一定是水平推導？</strong>初始建立時 AMF 不把 NH 給 gNB，基地台手上沒有可用的 {NH, NCC}。NCC=1 的第一個 NH 永遠不會拿來推 K<sub>gNB</sub>，只是 NH 鏈的起點（§6.9.2.1.1 NOTE 2、NOTE 3）。</li>
+      <li><strong>Xn 換手為什麼要「兩跳」才有前向安全？</strong>新的 {NH, NCC} 要等換手完成、Path Switch Ack 才送到目標基地台，只能留給下一次換手用；這一次的金鑰仍是來源基地台算的。目標基地台可以馬上做一次 intra-gNB-CU 換手，提早用上新 NH（§6.9.2.3.2 NOTE 1）。</li>
+      <li><strong>N2 換手呢？</strong>來源 AMF 收到 HANDOVER REQUIRED 就先算新 NH，經目標 AMF 直接交給目標基地台，來源基地台拿不到這個 NH（§6.9.2.3.3）。</li>
+      <li><strong>UE 怎麼知道要用水平還是垂直？</strong>看 HO Command 裡的 NCC：和目前 K<sub>gNB</sub> 的 NCC 相同就做水平；不同就反覆計算 NH 直到 NCC 一致，再做垂直（§6.9.2.3.4）。</li>
+      <li><strong>水平 K<sub>AMF</sub> 推導和 AS 的水平金鑰推導是同一件事嗎？</strong>不是。前者是換 AMF 時從舊 K<sub>AMF</sub> 推出新 K<sub>AMF</sub>（NAS 層，Annex A.13），會用 K_AMF_change_flag 通知 UE；後者是換基地台時從 K<sub>gNB</sub> 推出 K<sub>NG-RAN</sub>*（AS 層）。</li>
+      <li><strong>NASC 裡的 NAS MAC 為什麼用 COUNT = 2<sup>32</sup>−1？</strong>這個值不在正常 NAS COUNT 的範圍內，可以避免和一般 NAS 訊息的輸入重複。重放保護則靠 UE 檢查 NASC 裡的下行 NAS COUNT 有沒有重複（§6.9.2.3.3）。</li>
+      <li><strong>什麼情況可以完全不換 K<sub>gNB</sub>？</strong>只有 intra-gNB-CU 換手，由 gNB 依政策決定，並在 HO Command 中告訴 UE；ng-eNB 不支援保留（§6.9.2.3.1）。</li>
+      <li><strong>移動註冊更新（mobility registration update）時怎麼換 K<sub>AMF</sub>？</strong>來源 AMF 依本地政策，用目前 K<sub>AMF</sub> 和 Registration Request 的上行 NAS COUNT 做水平推導。目標 AMF 決定採用的話，就在 NAS SMC 中帶 K_AMF_change_flag=1，也可以改成重新認證（§6.9.3）。</li>
+    </ul>
+
+    <h2>參考條文</h2>
+    <ul class="refs">
+      <li>TS 33.501 §6.9：Security handling in mobility（本頁主題）</li>
+      <li>TS 33.501 §6.9.2.1：Key handling in handover — General（金鑰鏈模型）</li>
+      <li>TS 33.501 §6.9.2.3：Key derivations during handover（intra-gNB-CU、Xn、N2、UE handling）</li>
+      <li>TS 33.501 §6.9.3：Key handling in mobility registration update</li>
+      <li>TS 33.501 Annex A.10：NH derivation function</li>
+      <li>TS 33.501 Annex A.11、A.12：K<sub>NG-RAN</sub>* derivation function for target gNB／ng-eNB</li>
+      <li>TS 33.501 Annex A.13：K<sub>AMF</sub> to K<sub>AMF</sub>' derivation in mobility</li>
+      <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§6.9.2、§6.9.3、Annex A.10–A.13）；4G 部分<span class="todo">尚未對照原文</span></li>
+    </ul>
+  </main>
+</body>
+</html>
