@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>服務化架構的網路功能授權（OAuth 2.0）｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="wrap topic">
+    <a class="back" href="../index.html">← 回目錄</a>
+
+    <header class="topic-head">
+      <span class="topic-clause">§13.4</span>
+      <h1>服務化架構的網路功能授權（OAuth 2.0）</h1>
+      <p class="topic-summary">NRF 當授權伺服器發 access token，網元帶 token 呼叫服務，提供者驗過簽章與 claims 才放行。</p>
+      <p class="topic-meta">TS 33.501 Rel-18｜更新於 <time datetime="2026-11-08">2026-11-08</time></p>
+      <p class="topic-links"><a href="../slides/nf-oauth-authorization.html">看簡報版</a></p>
+    </header>
+
+    <h2>為什麼需要</h2>
+    <p>5G 核心網採用服務化架構（Service Based Architecture，SBA）：AMF、UDM、SMF 等網路功能（Network Function，NF）都把能力包成 HTTP API 服務，彼此用 API 呼叫。這樣很彈性，但也代表網路裡任何一個網元在技術上都能呼叫任何一個 API。</p>
+    <p>雙向 TLS 認證（§13.3）只能回答「你是誰」，不能回答「你能做什麼」。如果沒有授權機制，一個被入侵或設定錯誤的網元，就可能向 UDM 拿走不該拿的用戶資料或認證資訊。§5.9.2 因此要求 NRF 擔任授權伺服器，並確保探索與註冊請求都經過授權。</p>
+    <p>4G 的 EPC 主要用點對點介面（例如 Diameter），連線對象是事先設定好的，授權大多靠介面與對端設定隱含達成。<span class="todo">待查證</span>（sources/ 尚無 4G 核心網相關文件）5G 改用標準的 OAuth 2.0：每次存取服務都要出示由 NRF 簽發、限定對象和範圍的存取權杖（§13.4.1.0）。</p>
+
+    <h2>關鍵名詞</h2>
+    <dl class="terms">
+      <dt>SBA <span class="term-full">Service Based Architecture</span></dt>
+      <dd>服務化架構：核心網元以 HTTP API 提供與使用服務。</dd>
+      <dt>NF Service Consumer / Producer <span class="term-full">NF 服務使用者 / 服務提供者</span></dt>
+      <dd>呼叫服務的網元，以及提供服務的網元。同一個網元在不同情境可以扮演不同角色。</dd>
+      <dt>NRF <span class="term-full">Network Repository Function</span></dt>
+      <dd>網元的「黃頁」：負責註冊、探索，並擔任 OAuth 2.0 的授權伺服器，簽發 access token。</dd>
+      <dt>OAuth 2.0 <span class="term-full">OAuth 2.0 Authorization Framework（RFC 6749）</span></dt>
+      <dd>標準授權框架。5G 只用 Client Credentials Grant：由用戶端（網元）用自己的身分直接換取權杖，不牽涉人類使用者。</dd>
+      <dt>Access token <span class="term-full">存取權杖（JSON Web Token，JWT，RFC 7519）</span></dt>
+      <dd>NRF 簽發的權杖，用 JWS 數位簽章或 MAC 保護，內含一組 claims。</dd>
+      <dt>Claims <span class="term-full">權杖聲明</span></dt>
+      <dd>權杖裡的欄位：簽發者（issuer）、主體（subject）、對象（audience）、範圍（scope）、到期時間（expiration）等。</dd>
+      <dt>Additional scope <span class="term-full">額外範圍</span></dt>
+      <dd>比服務層級更細的授權，例如只允許某些資源或服務操作，由服務提供者在 NF profile 中設定。</dd>
+      <dt>SCP <span class="term-full">Service Communication Proxy</span></dt>
+      <dd>間接通訊時替網元轉送請求的代理，也可以代為探索與挑選服務提供者。</dd>
+      <dt>CCA <span class="term-full">Client Credentials Assertion</span></dt>
+      <dd>服務使用者自己簽的短效 JWS 聲明，用來在經過 SCP 時證明身分（§13.3.8）。</dd>
+    </dl>
+
+    <div class="table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr><th>OAuth 2.0 角色</th><th>PLMN 內（§13.4.1.1.1）</th><th>漫遊（§13.4.1.2.1）</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>授權伺服器</td><td>NRF</td><td>vNRF 認證服務使用者並轉送請求；hNRF 檢查授權並簽發權杖</td></tr>
+          <tr><td>用戶端（client）</td><td>NF Service Consumer（client id = NF Instance Id）</td><td>拜訪網路中的 NF Service Consumer</td></tr>
+          <tr><td>資源伺服器（resource server）</td><td>NF Service Producer</td><td>本籍網路中的 NF Service Producer</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr><th>Claim</th><th>內容</th><th>服務提供者怎麼檢查（§13.4.1.1.2）</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>issuer</td><td>NRF 的 NF Instance Id</td><td>用 NRF 公鑰驗簽章，或用共享金鑰驗 MAC</td></tr>
+          <tr><td>subject</td><td>服務使用者的 NF Instance Id</td><td>直接通訊時，要和對方 TLS 用戶端憑證中的 NF Instance ID 一致</td></tr>
+          <tr><td>audience</td><td>服務提供者的 NF type，或指定的 NF Instance Id</td><td>要符合自己的身分或 NF type</td></tr>
+          <tr><td>scope</td><td>允許的服務名稱</td><td>要涵蓋這次請求的服務操作</td></tr>
+          <tr><td>expiration</td><td>到期時間</td><td>不可過期</td></tr>
+          <tr><td>選用</td><td>additional scope、S-NSSAI 或 NSI ID 清單、NF Set ID</td><td>有出現就要相符，例如自己服務的切片至少一個在清單中</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>運作流程</h2>
+    <ol class="flow">
+      <li><span class="actor">NF Service Producer</span>透過 NF 註冊程序，向 NRF 註冊為 OAuth 2.0 資源伺服器；NF profile 中可以附上依服務使用者類型或實例設定的 additional scope。</li>
+      <li><span class="actor">NF Service Consumer</span>以 NF Instance Id 作為 client id，透過 NF 註冊或 OAM 向 NRF 註冊為用戶端，並和 NRF 完成雙向認證；NRF 以它憑證中的 NF Instance ID 識別它。</li>
+      <li><span class="actor">NF Service Consumer</span>送出 Nnrf_AccessToken_Get：帶自己的 NF Instance Id 與 NF type、想用的服務（scope）、目標 NF type 或指定實例，可再附 additional scope、S-NSSAI、PLMN ID。</li>
+      <li><span class="actor">NRF</span>比對請求中的 NF Instance ID、NF type、PLMN ID 是否和對方憑證或 NF profile 一致，再檢查授權（包含切片限制）。通過就產生權杖並用私鑰簽章或共享金鑰算 MAC，否則不發權杖。</li>
+      <li><span class="actor">NF Service Consumer</span>收到權杖後可以存起來，在有效期限內重複用來存取 scope、audience 涵蓋的服務。</li>
+      <li><span class="actor">NF Service Consumer</span>呼叫服務時附上權杖；雙方依 §13.3 互相認證。</li>
+      <li><span class="actor">NF Service Producer</span>先驗簽章或 MAC，再逐一檢查 subject、audience、切片、NF Set ID、scope、additional scope、到期時間；請求有附 CCA 時也可以一併驗證。</li>
+      <li><span class="actor">NF Service Producer</span>全部通過才執行服務並回應，否則依 OAuth 2.0 的錯誤格式拒絕。</li>
+    </ol>
+
+    <h2>白話解釋</h2>
+    <aside class="plain">
+      <p>把核心網想成一棟辦公大樓，各部門（網元）彼此提供服務。門禁卡（TLS 憑證）只證明「你是這棟樓的員工」，不代表你可以進人事室調資料。</p>
+      <p>所以要進某個部門辦事，得先去總務處（NRF）申請一張臨時通行證（access token）。通行證上寫著你是誰、能去哪個部門、能辦哪些事、幾點到期，還蓋了總務處的鋼印。部門櫃台看到通行證，會先驗鋼印，再核對你本人和通行證上寫的是否一致，以及要辦的事有沒有在許可範圍內，才幫你處理。</p>
+    </aside>
+
+    <h2>常見考點</h2>
+    <ul class="exam">
+      <li><strong>OAuth 2.0 三個角色在 5G 對應誰？</strong>NRF 是授權伺服器，NF Service Consumer 是用戶端，NF Service Producer 是資源伺服器（§13.4.1.1.1）。</li>
+      <li><strong>5G 用哪一種 grant？為什麼？</strong>Client Credentials Grant（RFC 6749 §4.4）。網元之間呼叫服務沒有人類使用者需要同意，由網元用自己的身分直接向 NRF 換權杖（§13.4.1.0）。</li>
+      <li><strong>權杖怎麼保護？</strong>權杖是 JWT，用 JWS 保護：NRF 用私鑰簽章，服務提供者用 NRF 公鑰驗；或改用 MAC，這時 NRF 和服務提供者需要兩兩預先共享對稱金鑰（§13.4.1.0 NOTE 1a）。</li>
+      <li><strong>權杖可以撤銷嗎？</strong>不行，本規格不支援撤銷。改由營運商依政策設定到期時間，限制權杖的使用期間（§13.4.1.1.2 NOTE 2）。</li>
+      <li><strong>怎麼防止別的網元拿偷來的權杖用？</strong>直接通訊時，服務提供者檢查權杖 subject 的 NF Instance ID，必須和對方 TLS 用戶端憑證中的一致。經過 SCP 的間接通訊可以附上 CCA，讓服務提供者比對 CCA 和權杖的 subject（§13.4.1.1.2）。</li>
+      <li><strong>漫遊時權杖由誰簽發？</strong>vNRF 認證服務使用者、檢查參數後轉給 hNRF，由 hNRF 授權並簽發。subject 和 audience 都會附上 PLMN ID；服務提供者檢查請求中的 PLMN ID 與權杖一致，pSEPP 檢查 subject 的服務網路 PLMN ID 和對端相符（§13.4.1.2.2）。</li>
+      <li><strong>vNRF 和 hNRF 是直接互相認證嗎？</strong>不是，只有遞移信任：vNRF↔vSEPP、vSEPP↔hSEPP、hSEPP↔hNRF 各自互相認證，所以兩個 NRF 只是隱含地互相認證（§13.4.1.2.2 NOTE）。</li>
+      <li><strong>經過 SCP 的間接通訊怎麼授權？</strong>服務使用者可以自己透過 SCP 向 NRF 拿權杖；採委派探索時，則由 SCP 代為向 NRF 取得權杖。不論哪種，服務提供者仍要自己認證服務使用者並驗證權杖（§13.4.1.3）。</li>
+      <li><strong>OAuth 2.0 適用所有訊息嗎？沒用 token 怎麼辦？</strong>不適用於通知（notification）操作。不使用 token 時改用靜態授權：NRF 與服務提供者依本地政策判斷（§13.4.1.0、§13.3.0）。</li>
+    </ul>
+
+    <h2>參考條文</h2>
+    <ul class="refs">
+      <li>TS 33.501 §13.4：Authorization of NF service access（本頁主題）</li>
+      <li>TS 33.501 §13.4.1.1：Service access authorization within the PLMN</li>
+      <li>TS 33.501 §13.4.1.2：Service access authorization in roaming scenarios</li>
+      <li>TS 33.501 §13.4.1.3：Service access authorization in indirect communication scenarios</li>
+      <li>TS 33.501 §13.3.0、§13.3.8：Static authorization、Client credentials assertion based authentication</li>
+      <li>TS 33.501 §5.9.2：Requirements on service-based architecture</li>
+      <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§5.9.2、§13.3.0、§13.3.8.3、§13.4.1）；4G 部分<span class="todo">尚未對照原文</span></li>
+    </ul>
+  </main>
+</body>
+</html>

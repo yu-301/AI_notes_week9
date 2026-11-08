@@ -48,6 +48,10 @@
         <dd>讓 USIM 確認考題來自 home network 且不是舊的。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
       </div>
       <div class="term">
+        <dt id="term-cca">CCA <span class="term-full">Client Credentials Assertion</span></dt>
+        <dd>服務使用者自己簽的短效 JWS 聲明，經過 SCP 時用來證明身分。<a href="pages/nf-oauth-authorization.html">出處：服務化架構的網路功能授權（OAuth 2.0）</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-drb">DRB <span class="term-full">Data Radio Bearer</span></dt>
         <dd>空中介面上承載使用者資料的無線承載，UP 保護逐條 DRB 啟用。<a href="pages/up-security.html">出處：使用者平面（UP）安全與完整性保護</a></dd>
       </div>
@@ -82,6 +86,10 @@
       <div class="term">
         <dt id="term-jws">JWS <span class="term-full">JSON Web Signature</span></dt>
         <dd>漫遊中介用私鑰簽署自己對訊息所做修改的 JSON 格式。<a href="pages/sepp-n32-roaming.html">出處：SEPP 與 N32 介面的漫遊安全</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-jwt">JWT <span class="term-full">JSON Web Token</span></dt>
+        <dd>5G access token 的格式，用 JWS 簽章或 MAC 保護。<a href="pages/nf-oauth-authorization.html">出處：服務化架構的網路功能授權（OAuth 2.0）</a></dd>
       </div>
       <div class="term">
         <dt id="term-kamf">K<sub>AMF</sub> <span class="term-full">Key for AMF</span></dt>
@@ -164,6 +172,14 @@
         <dd>5G 的完整性演算法，128-NIA1～3；NIA0 為不保護的空演算法。<a href="pages/nas-security.html">出處：NAS 安全機制</a></dd>
       </div>
       <div class="term">
+        <dt id="term-nrf">NRF <span class="term-full">Network Repository Function</span></dt>
+        <dd>網元註冊與探索中心，也是簽發 access token 的 OAuth 2.0 授權伺服器。<a href="pages/nf-oauth-authorization.html">出處：服務化架構的網路功能授權（OAuth 2.0）</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-oauth">OAuth 2.0 <span class="term-full">OAuth 2.0 Authorization Framework</span></dt>
+        <dd>標準授權框架；5G 用 Client Credentials Grant 讓網元換取存取權杖。<a href="pages/nf-oauth-authorization.html">出處：服務化架構的網路功能授權（OAuth 2.0）</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-pci">PCI <span class="term-full">Physical Cell Identity</span></dt>
         <dd>目標 cell 的實體識別碼，換手推導新金鑰時會綁進去。<a href="pages/handover-security.html">出處：換手時的安全處理與金鑰推導</a></dd>
       </div>
@@ -190,6 +206,14 @@
       <div class="term">
         <dt id="term-rrc">RRC <span class="term-full">Radio Resource Control</span></dt>
         <dd>UE 與基地台之間的控制訊號，例如建立連線、換手指令。<a href="pages/security-mode-command.html">出處：安全演算法選擇與安全模式命令程序</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-sba">SBA <span class="term-full">Service Based Architecture</span></dt>
+        <dd>服務化架構：核心網元以 HTTP API 提供與使用服務。<a href="pages/nf-oauth-authorization.html">出處：服務化架構的網路功能授權（OAuth 2.0）</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-scp">SCP <span class="term-full">Service Communication Proxy</span></dt>
+        <dd>間接通訊時替網元轉送請求、可代為探索服務提供者的代理。<a href="pages/nf-oauth-authorization.html">出處：服務化架構的網路功能授權（OAuth 2.0）</a></dd>
       </div>
       <div class="term">
         <dt id="term-seaf">SEAF <span class="term-full">Security Anchor Function</span></dt>

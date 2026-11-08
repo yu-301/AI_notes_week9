@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>服務化架構的網路功能授權（OAuth 2.0）（簡報）｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="deck">
+    <section class="slide slide-cover">
+      <span class="topic-clause">§13.4</span>
+      <h1>服務化架構的網路功能授權（OAuth 2.0）</h1>
+      <p class="topic-summary">NRF 當授權伺服器發 access token，網元帶 token 呼叫服務，提供者驗過簽章與 claims 才放行。</p>
+    </section>
+
+    <section class="slide">
+      <h2>為什麼需要</h2>
+      <ul>
+        <li>SBA：網元都以 HTTP API 提供服務，技術上誰都能呼叫誰</li>
+        <li>TLS 只證明「你是誰」，不決定「你能做什麼」</li>
+        <li>被入侵的網元可能向 UDM 拿走不該拿的資料</li>
+        <li>5G 用 OAuth 2.0：每次存取都要出示 NRF 簽發的權杖</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>關鍵名詞</h2>
+      <dl class="terms">
+        <dt>NRF <span class="term-full">Network Repository Function</span></dt>
+        <dd>授權伺服器，簽發權杖</dd>
+        <dt>Consumer / Producer <span class="term-full">NF Service Consumer / Producer</span></dt>
+        <dd>呼叫服務／提供服務的網元</dd>
+        <dt>Access token <span class="term-full">JSON Web Token</span></dt>
+        <dd>NRF 簽章的權杖</dd>
+        <dt>Claims <span class="term-full">issuer, subject, audience, scope, expiration</span></dt>
+        <dd>權杖裡的各項聲明</dd>
+        <dt>SCP <span class="term-full">Service Communication Proxy</span></dt>
+        <dd>間接通訊的轉送代理</dd>
+      </dl>
+    </section>
+
+    <section class="slide">
+      <h2>OAuth 2.0 角色對應</h2>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>角色</th><th>PLMN 內</th><th>漫遊</th></tr></thead>
+          <tbody>
+            <tr><td>授權伺服器</td><td>NRF</td><td>vNRF 轉送，hNRF 簽發</td></tr>
+            <tr><td>用戶端</td><td>NF Service Consumer</td><td>拜訪網路的 Consumer</td></tr>
+            <tr><td>資源伺服器</td><td>NF Service Producer</td><td>本籍網路的 Producer</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>權杖 claims 與檢查</h2>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>Claim</th><th>內容</th><th>Producer 檢查</th></tr></thead>
+          <tbody>
+            <tr><td>issuer</td><td>NRF</td><td>驗簽章或 MAC</td></tr>
+            <tr><td>subject</td><td>Consumer 的 NF Instance Id</td><td>和 TLS 憑證一致</td></tr>
+            <tr><td>audience</td><td>Producer 的 NF type／實例</td><td>符合自己</td></tr>
+            <tr><td>scope</td><td>允許的服務</td><td>涵蓋這次操作</td></tr>
+            <tr><td>expiration</td><td>到期時間</td><td>未過期</td></tr>
+            <tr><td>選用</td><td>additional scope、切片、NF Set ID</td><td>有就要相符</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（1/2）：取得權杖</h2>
+      <ol class="flow">
+        <li><span class="actor">Producer</span>向 NRF 註冊為資源伺服器，可附 additional scope</li>
+        <li><span class="actor">Consumer</span>以 NF Instance Id 註冊為用戶端，與 NRF 雙向認證</li>
+        <li><span class="actor">Consumer</span>Nnrf_AccessToken_Get：自己的身分、scope、目標 NF type</li>
+        <li><span class="actor">NRF</span>比對憑證或 NF profile、檢查授權，通過才簽發權杖</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（2/2）：使用權杖</h2>
+      <ol class="flow" start="5">
+        <li><span class="actor">Consumer</span>存下權杖，有效期內可重複使用</li>
+        <li><span class="actor">Consumer</span>呼叫服務時附上權杖，雙方互相認證</li>
+        <li><span class="actor">Producer</span>驗簽章，再查 subject、audience、scope、到期時間</li>
+        <li><span class="actor">Producer</span>全數通過才執行，否則回 OAuth 2.0 錯誤</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>白話解釋</h2>
+      <aside class="plain">
+        <p>門禁卡（TLS 憑證）只證明你是大樓員工，不代表能進人事室。</p>
+        <p>要辦事得先向總務處（NRF）領臨時通行證（token），上面寫明你是誰、去哪、辦什麼、何時到期並蓋鋼印；櫃台驗過鋼印、核對本人與範圍才放行。</p>
+      </aside>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（1/3）</h2>
+      <ul class="exam">
+        <li><strong>三個角色？</strong>NRF 授權伺服器、Consumer 用戶端、Producer 資源伺服器</li>
+        <li><strong>哪種 grant？</strong>Client Credentials Grant，沒有人類使用者</li>
+        <li><strong>權杖怎麼保護？</strong>JWT + JWS：NRF 私鑰簽章，或預共享金鑰算 MAC</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（2/3）</h2>
+      <ul class="exam">
+        <li><strong>能撤銷權杖嗎？</strong>不支援，靠到期時間限制</li>
+        <li><strong>防偷用權杖？</strong>subject 比對 TLS 憑證；間接通訊可用 CCA</li>
+        <li><strong>漫遊誰簽發？</strong>vNRF 轉送、hNRF 簽發；pSEPP 檢查 PLMN ID</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（3/3）</h2>
+      <ul class="exam">
+        <li><strong>vNRF、hNRF 直接互認？</strong>不是，經 SEPP 的遞移信任</li>
+        <li><strong>經過 SCP 怎麼辦？</strong>SCP 可代拿權杖，Producer 仍自己驗證</li>
+        <li><strong>適用所有訊息嗎？</strong>不適用通知；不用 token 時改靜態授權</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>參考條文</h2>
+      <ul class="refs">
+        <li>TS 33.501 §13.4：Authorization of NF service access（本頁主題）</li>
+        <li>TS 33.501 §13.4.1.1：Service access authorization within the PLMN</li>
+        <li>TS 33.501 §13.4.1.2：Service access authorization in roaming scenarios</li>
+        <li>TS 33.501 §13.4.1.3：Service access authorization in indirect communication scenarios</li>
+        <li>TS 33.501 §13.3.0、§13.3.8：Static authorization、Client credentials assertion based authentication</li>
+        <li>TS 33.501 §5.9.2：Requirements on service-based architecture</li>
+        <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§5.9.2、§13.3.0、§13.3.8.3、§13.4.1）；4G 部分<span class="todo">尚未對照原文</span></li>
+      </ul>
+    </section>
+
+    <nav class="deck-bar" aria-label="簡報控制">
+      <a href="../pages/nf-oauth-authorization.html">← 回文字版</a>
+      <div class="deck-controls">
+        <button class="deck-prev" type="button">上一張</button>
+        <span class="deck-count" aria-live="polite"></span>
+        <button class="deck-next" type="button">下一張</button>
+      </div>
+    </nav>
+  </main>
+  <script src="../assets/slides.js"></script>
+</body>
+</html>
