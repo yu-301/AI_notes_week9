@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SEPP 與 N32 介面的漫遊安全｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="wrap topic">
+    <a class="back" href="../index.html">← 回目錄</a>
+
+    <header class="topic-head">
+      <span class="topic-clause">§13.2</span>
+      <h1>SEPP 與 N32 介面的漫遊安全</h1>
+      <p class="topic-summary">跨網訊令都經過 SEPP：N32-c 協商金鑰與政策，N32-f 用 JWE 加密，中間業者的修改要用 JWS 簽章。</p>
+      <p class="topic-meta">TS 33.501 Rel-18｜更新於 <time datetime="2026-11-08">2026-11-08</time></p>
+      <p class="topic-links"><a href="../slides/sepp-n32-roaming.html">看簡報版</a></p>
+    </header>
+
+    <h2>為什麼需要</h2>
+    <p>漫遊時，拜訪網路（visited PLMN）的網元要向本籍網路（home PLMN）要認證向量、用戶資料，這些訊令會跨越兩家營運商。兩家之間通常不是直接連線，而是經過漫遊中介（Roaming Intermediary，RI），例如 IPX 業者或漫遊樞紐（Roaming Hub）。RI 有時需要看甚至改訊息內容，才能提供它的服務。</p>
+    <p>4G 以前，營運商之間用 SS7（2G/3G）或 Diameter（4G）經 IPX 交換訊令，協定本身大多沒有端到端的加密與來源驗證。能接入互連網路的人可以偽造訊息，查詢用戶位置或攔截簡訊。<span class="todo">待查證</span>（sources/ 尚無 4G 互連相關文件）</p>
+    <p>5G 在每個網路的邊界放一個安全邊緣保護代理（Security Edge Protection Proxy，SEPP），所有跨網路的控制面訊令都透過兩個 SEPP 之間的 N32 介面傳送。它要同時做到兩件事：機密欄位端到端加密，讓 RI 看不到；RI 被授權的修改要可以驗證、可以追查（§5.9.3.2、§13.2.1）。</p>
+
+    <h2>關鍵名詞</h2>
+    <dl class="terms">
+      <dt>SEPP <span class="term-full">Security Edge Protection Proxy</span></dt>
+      <dd>位在網路邊界的非透明代理，負責和對方 SEPP 互相認證、協商密碼套件、管理金鑰、隱藏內部拓樸，是內部網元對外的唯一出入口。</dd>
+      <dt>cSEPP / pSEPP <span class="term-full">consumer's SEPP / producer's SEPP</span></dt>
+      <dd>服務使用方網路的 SEPP 和服務提供方網路的 SEPP。</dd>
+      <dt>N32-c <span class="term-full">N32 control plane connection</span></dt>
+      <dd>兩個 SEPP 之間的管理用連線，用 TLS 保護，負責協商安全機制、交換參數與金鑰材料、回報錯誤。</dd>
+      <dt>N32-f <span class="term-full">N32 forwarding connection</span></dt>
+      <dd>實際轉送網元之間訊令的連線，用 TLS 或 PRINS 保護。</dd>
+      <dt>PRINS <span class="term-full">PRotocol for N32 INterconnect Security</span></dt>
+      <dd>§13.2 定義的 N32 應用層安全協定：SEPP 用 JWE 保護訊息，RI 用 JWS 簽署自己的修改。</dd>
+      <dt>RI <span class="term-full">Roaming Intermediary</span></dt>
+      <dd>兩家營運商之間的漫遊中介，例如 IPX（IP exchange service）業者（cIPX、pIPX）或漫遊樞紐；SEPP 之間最多經過兩個 RI。</dd>
+      <dt>JWE <span class="term-full">JSON Web Encryption（RFC 7516）</span></dt>
+      <dd>用 AEAD 演算法同時加密、做完整性保護的 JSON 格式；SEPP 之間用共享的對稱金鑰。</dd>
+      <dt>JWS <span class="term-full">JSON Web Signature（RFC 7515）</span></dt>
+      <dd>用私鑰簽章的 JSON 格式；RI 用它簽署自己做的修改。</dd>
+      <dt>N32-f context <span class="term-full">N32-f context</span></dt>
+      <dd>一組 N32-f 安全參數：context ID、對方 PLMN ID／SEPP ID／位址、session key、IV、計數器、修改政策、RI 的公鑰或憑證清單等。</dd>
+      <dt>保護政策 <span class="term-full">Data-type encryption policy / Modification policy</span></dt>
+      <dd>前者規定哪些資料類型要加密，後者規定 RI 可以改哪些欄位；兩者都由營運商設定，依漫遊夥伴分別訂定。</dd>
+    </dl>
+
+    <div class="table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr><th>SEPP 之間的路徑</th><th>N32-f 的保護方式（§13.1.2）</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>沒有 RI</td><td>TLS（N32-c、N32-f 用不同的 TLS 連線）</td></tr>
+          <tr><td>RI 只提供 IP 路由</td><td>TLS 或 PRINS 擇一</td></tr>
+          <tr><td>RI 需要查看、修改或增加訊息內容</td><td>必須用 PRINS</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr><th>SEPP 改寫後的區塊（§13.2.4.2）</th><th>內容</th><th>JWE 的角色</th><th>RI 看得到嗎</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>dataToIntegrityProtect</td><td>clearTextEncapsulatedMessage（原始 HTTP 訊息，但扣掉要加密的值）＋ metadata（authorizedIPX ID、N32-f message ID、N32-f context ID）</td><td>AAD：只做完整性保護</td><td>看得到，可依修改政策改</td></tr>
+          <tr><td>dataToIntegrityProtectAndCipher</td><td>需要加密的欄位值</td><td>明文輸入：加密 + 完整性</td><td>看不到</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>運作流程</h2>
+    <ol class="flow">
+      <li><span class="actor">兩個 SEPP</span>建立互相認證的 TLS 連線作為 N32-c。SEPP 依對方憑證中的 PLMN-ID 找到對應的信任錨（trust anchor），只用那一組根憑證驗證憑證鏈（§13.1.2）。</li>
+      <li><span class="actor">兩個 SEPP</span>協商安全機制：發起端依優先順序列出自己支援的 N32-f 保護機制，回應端依本地政策（例如路徑上有沒有 RI）選出 TLS 或 PRINS（§13.5）。</li>
+      <li><span class="actor">兩個 SEPP</span>若選 PRINS，就在 N32-c 上交換參數：協商密碼套件、互給隨機產生的 N32-f context ID、交換 RI 的公鑰或憑證清單；也可以交換保護政策（§13.2.2.2）。</li>
+      <li><span class="actor">兩個 SEPP</span>用 TLS exporter 從 N32-c 匯出 64 octets 的 N32-f master key，再用 N32-KDF（HKDF-Expand）推出兩對 session key 和兩對 IV salt，分別給兩個方向的 HTTP session 用。之後 N32-c 可以拆掉（§13.2.4.4.1）。</li>
+      <li><span class="actor">cSEPP</span>收到內部網元的 HTTP/2 訊息後，依保護政策把它改寫成兩個區塊：只需完整性保護的 dataToIntegrityProtect，以及要加密的 dataToIntegrityProtectAndCipher（§13.2.4.3）。</li>
+      <li><span class="actor">cSEPP</span>以 session key 為內容加密金鑰（"alg" 設為 "dir"）做 JWE：要加密的區塊當明文，另一塊當 AAD，產生密文和驗證標籤後，經 N32-f 送出（§13.2.4.4）。</li>
+      <li><span class="actor">RI（cIPX、pIPX）</span>只看得到明文區塊。依修改政策把要改的地方寫成 JSON Patch，附上自己的身分和 JWE 驗證標籤，再用私鑰做 JWS 簽章後附在訊息後面；就算沒有修改也要附 JWS（§13.2.4.5）。</li>
+      <li><span class="actor">pSEPP</span>驗證 JWE 標籤並解密，驗證每個 JWS 簽章，確認 RI 身分符合 authorizedIPX ID、修改符合政策、PLMN-ID 符合 N32-f context。都通過才套用修改，重組 HTTP 訊息轉給目標網元（§13.2.4.7）。</li>
+    </ol>
+
+    <h2>白話解釋</h2>
+    <aside class="plain">
+      <p>兩家公司（營運商）之間寄公文，中間要經過報關行（RI）。報關行需要看封面、偶爾補蓋章才能通關，但不能讓它看到公文裡的機密，也不能讓它亂改。</p>
+      <p>於是每家公司在門口設一個收發室（SEPP）。收發室把機密內容鎖進只有兩家收發室打得開的保險袋（JWE），封面則用透明封套，誰都看得到，但一動就會被發現。報關行想補註記，只能在旁邊另貼一張自己簽名的便條（JWS），寫明「我改了哪裡」；對方收發室會檢查簽名是不是合約上那家報關行、改的地方有沒有超出約定範圍，才照便條把公文改好交給內部。</p>
+    </aside>
+
+    <h2>常見考點</h2>
+    <ul class="exam">
+      <li><strong>SEPP 的主要功能有哪些？</strong>當非透明代理；和對方 SEPP 互相認證、協商密碼套件、管理 N32 金鑰；隱藏內部拓樸；作為內部網元對外的唯一出入口；檢查對方 SEPP 有沒有權使用訊息中的 PLMN ID（§5.9.3.2）。</li>
+      <li><strong>N32-c 和 N32-f 差在哪？</strong>N32-c 是管理用的 TLS 連線，負責協商安全機制、交換參數和金鑰材料、回報錯誤；N32-f 用來轉送網元之間的實際訊令（§13.2.1）。</li>
+      <li><strong>什麼時候用 TLS、什麼時候一定要用 PRINS？</strong>中間沒有 RI 就用 TLS；RI 只做 IP 路由時 TLS 或 PRINS 擇一；RI 要查看或修改內容時必須用 PRINS（§13.1.2）。</li>
+      <li><strong>為什麼不能讓 IPX 用逐段 TLS 就好？</strong>逐段 TLS 會讓每個 RI 都看得到、也改得了整則訊息。PRINS 讓機密欄位在 cSEPP 與 pSEPP 之間端到端加密，RI 只能改政策允許的欄位，而且每次修改都留下可驗證的簽章紀錄（§13.2.4.1）。</li>
+      <li><strong>哪些資料不論政策如何都必須在 N32-f 上加密？</strong>認證向量、密碼材料、位置資料（例如 Cell ID）、SMS over SBI 的簡訊內容、授權 token；SUPI 則是「應該」加密（§5.9.3.3）。</li>
+      <li><strong>N32-f 的金鑰從哪來？為什麼要綁 context ID？</strong>從 N32-c 的 TLS session 匯出 master key，再以 HKDF-Expand 加上 "N32"、N32-f context ID 和標籤推出 session key 與 IV salt。AES-GCM 若重用 IV 可能洩漏完整性金鑰，所以重用 master key 時一定要換新的 context ID（§13.2.4.4.1）。</li>
+      <li><strong>RI 沒有修改，為什麼還要附 JWS？</strong>避免別人把修改紀錄整段刪掉。JWS 裡還放了 JWE 驗證標籤，把修改綁定到這一則訊息，提供重放保護（§13.2.4.5）。</li>
+      <li><strong>怎麼防止 RI 把加密欄位搬到明文位置？</strong>基本驗證規則規定：需要加密的欄位不得被插到 JSON 物件的其他位置。接收端 SEPP 也要檢查 RI 有沒有把加密欄位移動或複製到會以明文回傳的位置（§13.2.3.4、§13.2.4.1）。</li>
+      <li><strong>N32-c 交換到的保護政策和本地設定不一致怎麼辦？</strong>營運商通常在漫遊協議中事先約定政策，N32-c 的交換只是用來偵測設定錯誤。不一致時，依營運商政策回錯誤訊息給對方 SEPP，或產生本地警告（§13.2.3.6）。</li>
+    </ul>
+
+    <h2>參考條文</h2>
+    <ul class="refs">
+      <li>TS 33.501 §13.2：Application layer security on the N32 interface（本頁主題）</li>
+      <li>TS 33.501 §13.2.2：N32-c connection between SEPPs</li>
+      <li>TS 33.501 §13.2.3：Protection policies for N32 application layer solution</li>
+      <li>TS 33.501 §13.2.4：N32-f connection between SEPPs（JWE、JWS、金鑰階層、接收端驗證）</li>
+      <li>TS 33.501 §13.1.2：Protection between SEPPs（TLS 與 PRINS 的選用）</li>
+      <li>TS 33.501 §13.5：Security capability negotiation between SEPPs</li>
+      <li>TS 33.501 §5.9.3.2、§5.9.3.3：SEPP 要求、屬性保護要求</li>
+      <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§5.9.3、§13.1.2、§13.2、§13.5）；4G 互連部分<span class="todo">尚未對照原文</span></li>
+    </ul>
+  </main>
+</body>
+</html>
