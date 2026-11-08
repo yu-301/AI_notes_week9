@@ -44,3 +44,7 @@
 ## [2026-11-03] add | §6.4 NAS 安全機制
 - 新增 pages/nas-security.html、slides/nas-security.html（依據 sources/3GPP TS 33.501 V18.12.0 (Release 18).docx）
 - 更新 index.html、glossary.html（新增術語：NAS、NAS COUNT、NAS-MAC、NEA、NIA、SMC）
+
+## [2026-11-08] add | §6.7 安全演算法選擇與安全模式命令程序
+- 新增 pages/security-mode-command.html、slides/security-mode-command.html（依據 sources/3GPP TS 33.501 V18.12.0 (Release 18).docx §6.7.1–§6.7.4）
+- 更新 index.html、glossary.html（新增術語：AS、LSM、RRC）

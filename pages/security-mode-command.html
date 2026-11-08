@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>安全演算法選擇與安全模式命令程序｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="wrap topic">
+    <a class="back" href="../index.html">← 回目錄</a>
+
+    <header class="topic-head">
+      <span class="topic-clause">§6.7</span>
+      <h1>安全演算法選擇與安全模式命令程序</h1>
+      <p class="topic-summary">網路依營運商的優先順序挑演算法，再用 SMC 一來一回啟動保護，並重播 UE 安全能力來擋降級攻擊。</p>
+      <p class="topic-meta">TS 33.501 Rel-18｜更新於 <time datetime="2026-11-08">2026-11-08</time></p>
+      <p class="topic-links"><a href="../slides/security-mode-command.html">看簡報版</a></p>
+    </header>
+
+    <h2>為什麼需要</h2>
+    <p>認證完成後，UE 和網路手上已經有金鑰，但還沒約好「要用哪一個演算法」，也還沒約好「從哪一則訊息開始保護」。這件事一定要雙方一致，否則一邊加密、另一邊卻不解密，訊息就全壞了。</p>
+    <p>麻煩在於：UE 是在還沒有安全保護的 Registration Request 裡回報自己支援哪些演算法（UE 安全能力）。中間人可以把強的演算法刪掉，誘使網路挑弱的、甚至挑不保護的空演算法，這叫<strong>降級攻擊</strong>（bidding down attack）。2G 的加密模式命令沒有完整性保護，就曾被這類攻擊利用。</p>
+    <p>5G 的解法是安全模式命令（Security Mode Command，SMC）：網路把「選好的演算法」和「UE 當初回報的安全能力」一起送回去，而且這則訊息有完整性保護，UE 一比對就知道有沒有被改過。4G（EPS）就已採用 NAS SMC 加 AS SMC 的設計，5G 沿用並分成兩層：UE 與 AMF 之間的 NAS SMC（§6.7.2），以及 UE 與基地台之間的 AS SMC（§6.7.4）。</p>
+
+    <h2>關鍵名詞</h2>
+    <dl class="terms">
+      <dt>UE 安全能力 <span class="term-full">UE 5G security capabilities</span></dt>
+      <dd>UE 支援哪些加密與完整性演算法的清單，在 Registration Request 中送給 AMF，之後由 AMF 轉給基地台。</dd>
+      <dt>演算法優先順序清單 <span class="term-full">Prioritized list of allowed algorithms</span></dt>
+      <dd>營運商透過網管設定在 AMF 與 gNB／ng-eNB 上的清單，加密、完整性各一份，依優先順序排列；選演算法時挑最前面的。</dd>
+      <dt>NAS SMC <span class="term-full">NAS Security Mode Command</span></dt>
+      <dd>AMF 與 UE 之間一來一回的程序，選定 NAS 演算法並建立 NAS 安全上下文。</dd>
+      <dt>AS <span class="term-full">Access Stratum</span></dt>
+      <dd>接取層，UE 與基地台之間的那一層；它的安全包含 RRC 訊號與使用者面（UP）資料。</dd>
+      <dt>RRC <span class="term-full">Radio Resource Control</span></dt>
+      <dd>UE 與基地台之間的控制訊號，例如建立連線、換手指令。</dd>
+      <dt>AS SMC <span class="term-full">AS Security Mode Command</span></dt>
+      <dd>gNB／ng-eNB 與 UE 之間的程序，選定 RRC 與 UP 演算法，並啟動 RRC 安全。</dd>
+      <dt>降級攻擊 <span class="term-full">Bidding down attack</span></dt>
+      <dd>攻擊者竄改安全能力或協商過程，讓雙方改用較弱或不保護的演算法。</dd>
+      <dt>K_AMF_change_flag <span class="term-full">K<sub>AMF</sub> change flag</span></dt>
+      <dd>NAS SMC 裡的選用旗標，告訴 UE 要推導新的 K<sub>AMF</sub>，並把 NAS COUNT 歸零。</dd>
+      <dt>LSM <span class="term-full">Limited Service Mode</span></dt>
+      <dd>受限服務模式；無法被認證的 UE 仍可能被允許建立緊急通話，這時只能用空演算法（§6.7.3.6）。</dd>
+    </dl>
+
+    <div class="table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr><th>比較項目</th><th>NAS SMC（§6.7.2）</th><th>AS SMC（§6.7.4）</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>兩端</td><td>UE ↔ AMF</td><td>UE ↔ gNB／ng-eNB</td></tr>
+          <tr><td>誰選演算法</td><td>AMF：依自己清單挑優先順序最高者</td><td>gNB：挑自己清單中最優先、且 UE 安全能力也有的</td></tr>
+          <tr><td>保護對象</td><td>NAS 訊號</td><td>RRC 訊號與 UP 資料（UP 是否啟用看 SMF 的 UP 安全政策，§6.6.2）</td></tr>
+          <tr><td>Command 的保護</td><td>只做完整性，不加密（K<sub>NASint</sub>，由 ngKSI 指出的 K<sub>AMF</sub> 推出）</td><td>只做完整性（RRC 完整性金鑰，由目前的 K<sub>gNB</sub> 推出）</td></tr>
+          <tr><td>Complete 的保護</td><td>加密 + 完整性</td><td>完整性（UE 送出後才開始上行加密）</td></tr>
+          <tr><td>網路端開始加解密</td><td>送出 Command 後開始上行解密；收到 Complete 後才開始下行加密</td><td>送出 Command 後開始下行加密；驗證 Complete 後才開始上行解密</td></tr>
+          <tr><td>驗證失敗時</td><td>UE 回 NAS Security Mode Reject：有舊 NAS 上下文就用舊的保護，沒有就不保護</td><td>UE 回未受保護的 security mode failure</td></tr>
+          <tr><td>使用時機</td><td>建立 NAS 安全上下文時（含 mobility registration update 換演算法）</td><td>只在初始上下文建立，也就是 RRC_IDLE → RRC_CONNECTED 啟用新 K<sub>gNB</sub> 時</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>運作流程</h2>
+    <ol class="flow">
+      <li><span class="actor">UE</span>在 Registration Request 中送出自己的 UE 安全能力。這則初始訊息此時還沒有 NAS 安全保護（見 NAS 安全那頁）。</li>
+      <li><span class="actor">AMF</span>主要認證完成後，從營運商設定的 NAS 加密、完整性兩份清單中，各挑優先順序最高的演算法（§6.7.1.1）。</li>
+      <li><span class="actor">AMF</span>先啟動 NAS 完整性保護，再送出 NAS Security Mode Command：必含重播的 UE 安全能力、選定的 NAS 演算法、ngKSI；可選擇帶 K_AMF_change_flag、要求完整初始 NAS 訊息的旗標、ABBA。送出後開始上行解密。</li>
+      <li><span class="actor">UE</span>驗證 SMC：比對重播的安全能力和自己存的是否一致，並用 ngKSI 指出的金鑰檢查完整性。通過就啟動 NAS 完整性與加解密；失敗則回 NAS Security Mode Reject。</li>
+      <li><span class="actor">UE</span>回傳加密且有完整性保護的 NAS Security Mode Complete。AMF 有要求時要附 PEI，也可以附上完整的初始 NAS 訊息。</li>
+      <li><span class="actor">AMF</span>解密並驗證 Complete 成功後，才開始下行加密。驗證成功也代表 UE 用的 SUPI 和 home network 給的一致。</li>
+      <li><span class="actor">AMF</span>要建立 AS 安全上下文時，把 UE 5G 安全能力送給 gNB／ng-eNB（§6.7.3.0）。</li>
+      <li><span class="actor">gNB</span>從自己的加密、完整性清單中，各挑「優先順序最高、且 UE 也支援」的演算法；選出的演算法同時用於 RRC 和 UP。</li>
+      <li><span class="actor">gNB</span>送出 AS Security Mode Command，內含選定的 RRC 與 UP 演算法，用目前 K<sub>gNB</sub> 推出的 RRC 完整性金鑰保護。送出後開始 RRC 下行加密。</li>
+      <li><span class="actor">UE</span>驗證 AS SMC 成功後開始下行解密，回傳有完整性保護的 AS Security Mode Complete，送出後開始上行加密。驗證失敗則回未受保護的 security mode failure。</li>
+      <li><span class="actor">gNB</span>驗證 Complete 成功後開始 RRC 上行解密。UP 的加密與完整性則依 SMF 給的 UP 安全政策另外啟用（§6.6.2）。</li>
+    </ol>
+
+    <h2>白話解釋</h2>
+    <aside class="plain">
+      <p>你要和公司總務處（AMF）約定以後公文用哪種鎖。你先寄一張「我家有哪些鎖」的清單，但這張是明信片，郵差可以偷偷把好鎖劃掉，讓總務處只能挑爛鎖。</p>
+      <p>所以總務處回信時，把你的清單原封不動抄一遍，連同「我們選這把鎖」一起寄回，信上還蓋了只有你們兩個才蓋得出來的印章。你核對抄回來的清單和自己寄出的一樣，就知道沒人動過手腳，從這封信開始雙方都上鎖；不一樣就拒絕。</p>
+      <p>進出大樓的門禁（基地台）要另外約一次鎖，這就是 AS SMC。管理員只能從總務處轉交的那份「你有哪些鎖」裡挑，不會聽信路人報的版本。</p>
+    </aside>
+
+    <h2>常見考點</h2>
+    <ul class="exam">
+      <li><strong>NAS SMC 怎麼防降級攻擊？</strong>AMF 把 UE 在 Registration Request 送出的安全能力重播回 UE，且 SMC 有完整性保護。若中間人改過安全能力，UE 比對不一致就回 Reject，不會附著到網路（§6.7.2 NOTE 1）。</li>
+      <li><strong>為什麼 NAS SMC 只做完整性、不加密？</strong>UE 要先讀到選定的演算法和 ngKSI，才知道用哪把金鑰、哪個演算法；所以 Command 只能明文加完整性保護，UE 回的 Complete 才同時加密。</li>
+      <li><strong>NAS 和 AS 演算法分別由誰選？</strong>NAS 由 AMF 選，AS 由 gNB／ng-eNB 選；兩者都依營運商設定的優先順序清單，加密與完整性各一份清單（§6.7.1.1、§6.7.3.0）。</li>
+      <li><strong>NAS SMC 和 AS SMC 的網路端，誰先開始哪個方向？</strong>NAS：AMF 送出 Command 後先開上行解密，收到 Complete 才開下行加密。AS：gNB 送出 Command 後先開下行加密，驗證 Complete 才開上行解密。</li>
+      <li><strong>AS SMC 什麼時候用？</strong>只在初始上下文建立，也就是 RRC_IDLE → RRC_CONNECTED、啟用新 K<sub>gNB</sub> 時；因為 K<sub>gNB</sub> 是新的，PDCP COUNT 可以歸零（§6.7.4）。</li>
+      <li><strong>Xn 換手時演算法怎麼處理？</strong>來源基地台把 UE 安全能力和目前演算法放進 handover request，目標基地台自己重選，不同才寫進 Handover Command（ng-eNB 與 gNB 互換時一定要寫）。Path-Switch 時 AMF 比對安全能力，不一致就送回自己存的版本並記錄事件（§6.7.3.1）。</li>
+      <li><strong>從 RRC_INACTIVE 回到 RRC_CONNECTED，目標基地台不支援原演算法怎麼辦？</strong>改送 RRCSetup（SRB0），當成從 RRC_IDLE 重新建立連線，再透過 AS SMC 重新協商；若支援且沿用，則直接用原演算法保護 RRCResume（§6.7.3.4）。</li>
+      <li><strong>什麼情況會用 NIA0／NEA0？</strong>AMF 允許無法認證、處於 LSM 的 UE 建立緊急通話時，NAS 一律選 NIA0、NEA0，並只給基地台 EIA0、EEA0、NIA0、NEA0。除此之外，UE 不得接受 AS 完整性用空演算法（§6.7.3.6）。</li>
+    </ul>
+
+    <h2>參考條文</h2>
+    <ul class="refs">
+      <li>TS 33.501 §6.7：Security algorithm selection, key establishment and security mode command procedure（本頁主題）</li>
+      <li>TS 33.501 §6.7.1：Procedures for NAS algorithm selection</li>
+      <li>TS 33.501 §6.7.2：NAS security mode command procedure</li>
+      <li>TS 33.501 §6.7.3：Procedures for AS algorithm selection（含 Xn／N2 換手、RRC_INACTIVE、LSM）</li>
+      <li>TS 33.501 §6.7.4：AS security mode command procedure</li>
+      <li>TS 33.501 §6.6.2：UP security activation mechanism（UP 保護的啟用）</li>
+      <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§6.7.1–§6.7.4）</li>
+    </ul>
+  </main>
+</body>
+</html>
