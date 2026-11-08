@@ -56,3 +56,7 @@
 ## [2026-11-08] add | §6.9 換手時的安全處理與金鑰推導
 - 新增 pages/handover-security.html、slides/handover-security.html（依據 sources/3GPP TS 33.501 V18.12.0 (Release 18).docx §6.9.2、§6.9.3、Annex A.10–A.13；4G 部分標記待查證）
 - 更新 index.html、glossary.html（新增術語：KNG-RAN*、NASC、NCC、PCI）
+
+## [2026-11-08] add | §13.2 SEPP 與 N32 介面的漫遊安全
+- 新增 pages/sepp-n32-roaming.html、slides/sepp-n32-roaming.html（依據 sources/3GPP TS 33.501 V18.12.0 (Release 18).docx §5.9.3、§13.1.2、§13.2、§13.5；4G 互連部分標記待查證）
+- 更新 index.html、glossary.html（新增術語：IPX、JWE、JWS、N32、PRINS、RI、SEPP）

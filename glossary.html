@@ -72,6 +72,18 @@
         <dd>標準答案 XRES* 的雜湊值，讓 SEAF 初步比對卻拿不到答案。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
       </div>
       <div class="term">
+        <dt id="term-ipx">IPX <span class="term-full">IP exchange service</span></dt>
+        <dd>營運商之間的互連服務業者，是一種漫遊中介（RI）。<a href="pages/sepp-n32-roaming.html">出處：SEPP 與 N32 介面的漫遊安全</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-jwe">JWE <span class="term-full">JSON Web Encryption</span></dt>
+        <dd>SEPP 之間用共享金鑰同時加密與完整性保護 N32-f 訊息的 JSON 格式。<a href="pages/sepp-n32-roaming.html">出處：SEPP 與 N32 介面的漫遊安全</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-jws">JWS <span class="term-full">JSON Web Signature</span></dt>
+        <dd>漫遊中介用私鑰簽署自己對訊息所做修改的 JSON 格式。<a href="pages/sepp-n32-roaming.html">出處：SEPP 與 N32 介面的漫遊安全</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-kamf">K<sub>AMF</sub> <span class="term-full">Key for AMF</span></dt>
         <dd>AMF 的根金鑰，由 K<sub>SEAF</sub> 推出，NAS 金鑰與 K<sub>gNB</sub> 都從它推導。<a href="pages/key-hierarchy.html">出處：5G 金鑰階層與金鑰推導</a></dd>
       </div>
@@ -110,6 +122,10 @@
       <div class="term">
         <dt id="term-mac-i">MAC-I <span class="term-full">Message Authentication Code for Integrity</span></dt>
         <dd>PDCP 封包裡的完整性驗證碼，未啟用 UP 完整性時不放。<a href="pages/up-security.html">出處：使用者平面（UP）安全與完整性保護</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-n32">N32 <span class="term-full">N32 interface</span></dt>
+        <dd>兩個 SEPP 之間的介面，分成管理用的 N32-c 與轉送訊令的 N32-f。<a href="pages/sepp-n32-roaming.html">出處：SEPP 與 N32 介面的漫遊安全</a></dd>
       </div>
       <div class="term">
         <dt id="term-nas">NAS <span class="term-full">Non Access Stratum</span></dt>
@@ -156,6 +172,10 @@
         <dd>UE 與基地台間負責 UP 加密與完整性保護的協定層。<a href="pages/up-security.html">出處：使用者平面（UP）安全與完整性保護</a></dd>
       </div>
       <div class="term">
+        <dt id="term-prins">PRINS <span class="term-full">PRotocol for N32 INterconnect Security</span></dt>
+        <dd>N32-f 的應用層安全協定：SEPP 用 JWE 加密，RI 用 JWS 簽修改。<a href="pages/sepp-n32-roaming.html">出處：SEPP 與 N32 介面的漫遊安全</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-rand">RAND <span class="term-full">Random Challenge</span></dt>
         <dd>網路出給手機的隨機考題。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
       </div>
@@ -164,12 +184,20 @@
         <dd>手機由 RES 與服務網路名稱推導出的答案，對應的標準答案是 XRES*。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
       </div>
       <div class="term">
+        <dt id="term-ri">RI <span class="term-full">Roaming Intermediary</span></dt>
+        <dd>兩家營運商之間的漫遊中介，例如 IPX 或漫遊樞紐。<a href="pages/sepp-n32-roaming.html">出處：SEPP 與 N32 介面的漫遊安全</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-rrc">RRC <span class="term-full">Radio Resource Control</span></dt>
         <dd>UE 與基地台之間的控制訊號，例如建立連線、換手指令。<a href="pages/security-mode-command.html">出處：安全演算法選擇與安全模式命令程序</a></dd>
       </div>
       <div class="term">
         <dt id="term-seaf">SEAF <span class="term-full">Security Anchor Function</span></dt>
         <dd>位在 AMF 裡，向手機發起認證並初步比對答案。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-sepp">SEPP <span class="term-full">Security Edge Protection Proxy</span></dt>
+        <dd>網路邊界的安全代理，所有跨營運商的控制面訊令都經過它。<a href="pages/sepp-n32-roaming.html">出處：SEPP 與 N32 介面的漫遊安全</a></dd>
       </div>
       <div class="term">
         <dt id="term-sidf">SIDF <span class="term-full">Subscription Identifier De-concealing Function</span></dt>

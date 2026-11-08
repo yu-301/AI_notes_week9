@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SEPP 與 N32 介面的漫遊安全（簡報）｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="deck">
+    <section class="slide slide-cover">
+      <span class="topic-clause">§13.2</span>
+      <h1>SEPP 與 N32 介面的漫遊安全</h1>
+      <p class="topic-summary">跨網訊令都經過 SEPP：N32-c 協商金鑰與政策，N32-f 用 JWE 加密，中間業者的修改要用 JWS 簽章。</p>
+    </section>
+
+    <section class="slide">
+      <h2>為什麼需要</h2>
+      <ul>
+        <li>漫遊訊令跨越兩家營運商，中間還有 IPX、漫遊樞紐等 RI</li>
+        <li>4G 以前的 SS7／Diameter 互連缺乏端到端保護（<span class="todo">待查證</span>）</li>
+        <li>5G 在網路邊界放 SEPP，跨網訊令一律走 N32</li>
+        <li>目標：機密欄位端到端加密，RI 的修改可驗證、可追查</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>關鍵名詞</h2>
+      <dl class="terms">
+        <dt>SEPP <span class="term-full">Security Edge Protection Proxy</span></dt>
+        <dd>網路邊界的安全代理</dd>
+        <dt>N32-c / N32-f <span class="term-full">N32 control plane / forwarding connection</span></dt>
+        <dd>管理用連線／轉送訊令</dd>
+        <dt>PRINS <span class="term-full">PRotocol for N32 INterconnect Security</span></dt>
+        <dd>N32 的應用層安全協定</dd>
+        <dt>RI <span class="term-full">Roaming Intermediary</span></dt>
+        <dd>IPX、漫遊樞紐，最多兩個</dd>
+        <dt>JWE / JWS <span class="term-full">JSON Web Encryption / Signature</span></dt>
+        <dd>SEPP 加密／RI 簽修改</dd>
+      </dl>
+    </section>
+
+    <section class="slide">
+      <h2>N32-f 用 TLS 還是 PRINS</h2>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>SEPP 之間的路徑</th><th>N32-f 保護方式</th></tr></thead>
+          <tbody>
+            <tr><td>沒有 RI</td><td>TLS</td></tr>
+            <tr><td>RI 只做 IP 路由</td><td>TLS 或 PRINS</td></tr>
+            <tr><td>RI 要查看或修改內容</td><td>必須 PRINS</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>SEPP 把訊息拆成兩塊</h2>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>區塊</th><th>JWE 角色</th><th>RI 看得到嗎</th></tr></thead>
+          <tbody>
+            <tr><td>dataToIntegrityProtect（明文訊息 + metadata）</td><td>AAD，只做完整性</td><td>看得到，可依政策改</td></tr>
+            <tr><td>dataToIntegrityProtectAndCipher（要加密的值）</td><td>明文輸入，加密 + 完整性</td><td>看不到</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（1/2）：N32-c 建立</h2>
+      <ol class="flow">
+        <li><span class="actor">兩個 SEPP</span>互相認證的 TLS 建 N32-c，依 PLMN-ID 選信任錨驗證憑證</li>
+        <li><span class="actor">兩個 SEPP</span>協商安全機制：回應端依政策選 TLS 或 PRINS</li>
+        <li><span class="actor">兩個 SEPP</span>PRINS：協商密碼套件、互給 context ID、交換 RI 公鑰與政策</li>
+        <li><span class="actor">兩個 SEPP</span>TLS exporter 匯出 master key，HKDF 推出 session key 與 IV salt</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（2/2）：N32-f 傳送</h2>
+      <ol class="flow" start="5">
+        <li><span class="actor">cSEPP</span>依政策把訊息拆成只做完整性、要加密兩塊</li>
+        <li><span class="actor">cSEPP</span>用 session key 做 JWE，經 N32-f 送出</li>
+        <li><span class="actor">RI</span>把修改寫成 JSON Patch，附 JWE 標籤後以 JWS 簽章</li>
+        <li><span class="actor">pSEPP</span>驗 JWE、驗 JWS、查政策與 PLMN-ID，再套用修改轉給網元</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>白話解釋</h2>
+      <aside class="plain">
+        <p>兩家公司在門口各設收發室（SEPP）：機密內容鎖進只有兩間收發室打得開的保險袋（JWE），封面用透明封套，一動就會被發現。</p>
+        <p>中間的報關行（RI）要補註記，只能另貼自己簽名的便條（JWS）；對方收發室核對簽名和約定範圍後才照改。</p>
+      </aside>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（1/3）</h2>
+      <ul class="exam">
+        <li><strong>SEPP 做什麼？</strong>互相認證、協商套件、管金鑰、隱藏拓樸、唯一出入口</li>
+        <li><strong>N32-c vs N32-f？</strong>N32-c 管理與協商；N32-f 轉送實際訊令</li>
+        <li><strong>何時必須用 PRINS？</strong>RI 要查看或修改訊息內容時</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（2/3）</h2>
+      <ul class="exam">
+        <li><strong>為何不用逐段 TLS？</strong>RI 會看到、改到全部；PRINS 端到端加密機密欄位</li>
+        <li><strong>一定要加密的資料？</strong>認證向量、密碼材料、位置、簡訊內容、授權 token</li>
+        <li><strong>為何金鑰綁 context ID？</strong>避免 AES-GCM 重用 IV 洩漏完整性金鑰</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（3/3）</h2>
+      <ul class="exam">
+        <li><strong>沒修改也要附 JWS？</strong>防止修改紀錄被刪；附 JWE 標籤防重放</li>
+        <li><strong>防 RI 搬移加密欄位？</strong>加密欄位不得移位，接收端 SEPP 要檢查</li>
+        <li><strong>交換到的政策不一致？</strong>依營運商政策回錯誤或產生本地警告</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>參考條文</h2>
+      <ul class="refs">
+        <li>TS 33.501 §13.2：Application layer security on the N32 interface（本頁主題）</li>
+        <li>TS 33.501 §13.2.2：N32-c connection between SEPPs</li>
+        <li>TS 33.501 §13.2.3：Protection policies for N32 application layer solution</li>
+        <li>TS 33.501 §13.2.4：N32-f connection between SEPPs（JWE、JWS、金鑰階層、接收端驗證）</li>
+        <li>TS 33.501 §13.1.2：Protection between SEPPs（TLS 與 PRINS 的選用）</li>
+        <li>TS 33.501 §13.5：Security capability negotiation between SEPPs</li>
+        <li>TS 33.501 §5.9.3.2、§5.9.3.3：SEPP 要求、屬性保護要求</li>
+        <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§5.9.3、§13.1.2、§13.2、§13.5）；4G 互連部分<span class="todo">尚未對照原文</span></li>
+      </ul>
+    </section>
+
+    <nav class="deck-bar" aria-label="簡報控制">
+      <a href="../pages/sepp-n32-roaming.html">← 回文字版</a>
+      <div class="deck-controls">
+        <button class="deck-prev" type="button">上一張</button>
+        <span class="deck-count" aria-live="polite"></span>
+        <button class="deck-next" type="button">下一張</button>
+      </div>
+    </nav>
+  </main>
+  <script src="../assets/slides.js"></script>
+</body>
+</html>
