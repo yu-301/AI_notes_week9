@@ -28,6 +28,14 @@
         <dd>網路分配的臨時身分，日常通訊用它取代永久身分。<a href="pages/suci-supi-concealment.html">出處：SUPI 隱藏與 SUCI</a></dd>
       </div>
       <div class="term">
+        <dt id="term-aaa-p">AAA-P <span class="term-full">AAA Proxy</span></dt>
+        <dd>營運商通往第三方 AAA 伺服器時使用的代理，可和 NSSAAF 合併部署。<a href="pages/nssaa.html">出處：網路切片專屬認證與授權（NSSAA）</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-aaa-s">AAA-S <span class="term-full">AAA Server</span></dt>
+        <dd>執行切片專屬認證的 AAA 伺服器，可能屬於第三方企業。<a href="pages/nssaa.html">出處：網路切片專屬認證與授權（NSSAA）</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-abba">ABBA <span class="term-full">Anti-Bidding down Between Architectures</span></dt>
         <dd>SEAF 送給 UE 的參數，防止安全功能被降級，也用來推導 K<sub>AMF</sub>。<a href="pages/eap-aka-prime.html">出處：EAP-AKA' 認證</a></dd>
       </div>
@@ -70,6 +78,14 @@
       <div class="term">
         <dt id="term-emsk">EMSK <span class="term-full">Extended Master Session Key</span></dt>
         <dd>EAP-AKA' 由 CK'、IK' 推導出的金鑰，取最高 256 bits 當 K<sub>AUSF</sub>。<a href="pages/eap-aka-prime.html">出處：EAP-AKA' 認證</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-ensi">ENSI <span class="term-full">External Network Slice Information</span></dt>
+        <dd>送給第三方 AAA-S 時，用來取代 S-NSSAI 的對外切片資訊。<a href="pages/nssaa.html">出處：網路切片專屬認證與授權（NSSAA）</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-gpsi">GPSI <span class="term-full">Generic Public Subscription Identifier</span></dt>
+        <dd>用戶的公開識別碼；AAA-S 用它要求重新認證或撤銷切片授權。<a href="pages/nssaa.html">出處：網路切片專屬認證與授權（NSSAA）</a></dd>
       </div>
       <div class="term">
         <dt id="term-hxres-star">HXRES* <span class="term-full">Hash of XRES*</span></dt>
@@ -176,6 +192,14 @@
         <dd>網元註冊與探索中心，也是簽發 access token 的 OAuth 2.0 授權伺服器。<a href="pages/nf-oauth-authorization.html">出處：服務化架構的網路功能授權（OAuth 2.0）</a></dd>
       </div>
       <div class="term">
+        <dt id="term-nssaa">NSSAA <span class="term-full">Network Slice Specific Authentication and Authorization</span></dt>
+        <dd>主要認證之後，針對特定切片的額外 EAP 認證與授權。<a href="pages/nssaa.html">出處：網路切片專屬認證與授權（NSSAA）</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-nssaaf">NSSAAF <span class="term-full">Network Slice-Specific and SNPN Authentication and Authorization Function</span></dt>
+        <dd>把 NSSAA 請求送到對應 AAA-S，並轉換服務化訊息與 AAA 協定的網元。<a href="pages/nssaa.html">出處：網路切片專屬認證與授權（NSSAA）</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-oauth">OAuth 2.0 <span class="term-full">OAuth 2.0 Authorization Framework</span></dt>
         <dd>標準授權框架；5G 用 Client Credentials Grant 讓網元換取存取權杖。<a href="pages/nf-oauth-authorization.html">出處：服務化架構的網路功能授權（OAuth 2.0）</a></dd>
       </div>
@@ -206,6 +230,10 @@
       <div class="term">
         <dt id="term-rrc">RRC <span class="term-full">Radio Resource Control</span></dt>
         <dd>UE 與基地台之間的控制訊號，例如建立連線、換手指令。<a href="pages/security-mode-command.html">出處：安全演算法選擇與安全模式命令程序</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-s-nssai">S-NSSAI <span class="term-full">Single Network Slice Selection Assistance Information</span></dt>
+        <dd>一個網路切片的識別碼。<a href="pages/nssaa.html">出處：網路切片專屬認證與授權（NSSAA）</a></dd>
       </div>
       <div class="term">
         <dt id="term-sba">SBA <span class="term-full">Service Based Architecture</span></dt>

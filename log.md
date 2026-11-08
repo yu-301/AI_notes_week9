@@ -64,3 +64,7 @@
 ## [2026-11-08] add | §13.4 服務化架構的網路功能授權（OAuth 2.0）
 - 新增 pages/nf-oauth-authorization.html、slides/nf-oauth-authorization.html（依據 sources/3GPP TS 33.501 V18.12.0 (Release 18).docx §5.9.2、§13.3.0、§13.3.8.3、§13.4.1；4G 部分標記待查證）
 - 更新 index.html、glossary.html（新增術語：CCA、JWT、NRF、OAuth 2.0、SBA、SCP）
+
+## [2026-11-08] add | §16 網路切片專屬認證與授權（NSSAA）
+- 新增 pages/nssaa.html、slides/nssaa.html（依據 sources/3GPP TS 33.501 V18.12.0 (Release 18).docx §5.13、§14.4.1、§16.2–§16.5；4G 部分標記待查證）
+- 更新 index.html、glossary.html（新增術語：AAA-P、AAA-S、ENSI、GPSI、NSSAA、NSSAAF、S-NSSAI）

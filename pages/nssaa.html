@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>網路切片專屬認證與授權（NSSAA）｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="wrap topic">
+    <a class="back" href="../index.html">← 回目錄</a>
+
+    <header class="topic-head">
+      <span class="topic-clause">§16</span>
+      <h1>網路切片專屬認證與授權（NSSAA）</h1>
+      <p class="topic-summary">主要認證通過後，部分切片還要用另一組帳密，由 AMF 經 NSSAAF 和 AAA 伺服器跑 EAP 驗證才能使用。</p>
+      <p class="topic-meta">TS 33.501 Rel-18｜更新於 <time datetime="2026-11-08">2026-11-08</time></p>
+      <p class="topic-links"><a href="../slides/nssaa.html">看簡報版</a></p>
+    </header>
+
+    <h2>為什麼需要</h2>
+    <p>5G 可以把一張實體網路切成多個邏輯網路，也就是網路切片（network slice），每個切片用 S-NSSAI 識別。有些切片是專門給企業或垂直產業用的，例如工廠或車隊專用切片。這類切片的擁有者會希望自己決定誰能用，而不是只要有這家電信的 SIM 卡就能進來。</p>
+    <p>主要認證（§6.1）只能證明「這是電信公司的合法用戶」。§16.2 規定：UE 必須先完成主要認證，才能取得被允許的 S-NSSAI。對某些 S-NSSAI，還要再做一次網路切片專屬認證與授權（Network Slice Specific Authentication and Authorization，NSSAA）。NSSAA 使用和 3GPP 用戶憑證不同的使用者 ID 與憑證，驗證方可以是第三方企業自己的 AAA 伺服器（§16.3）。</p>
+    <p>4G 沒有這種以切片為單位的認證；企業若要自己驗證用戶，通常是在建立 PDN 連線時，由 PGW 向外部 AAA 伺服器做認證。<span class="todo">待查證</span>（sources/ 尚無 4G 相關文件）</p>
+
+    <h2>關鍵名詞</h2>
+    <dl class="terms">
+      <dt>S-NSSAI <span class="term-full">Single Network Slice Selection Assistance Information</span></dt>
+      <dd>一個網路切片的識別碼。</dd>
+      <dt>Allowed / Rejected NSSAI <span class="term-full">允許 / 拒絕的 NSSAI</span></dt>
+      <dd>AMF 告訴 UE 目前可以用、不能用的切片清單；NSSAA 的結果會改變這兩份清單。</dd>
+      <dt>NSSAA <span class="term-full">Network Slice Specific Authentication and Authorization</span></dt>
+      <dd>針對特定切片、在主要認證之後執行的額外 EAP 認證與授權，是選用的。</dd>
+      <dt>NSSAAF <span class="term-full">Network Slice-Specific and SNPN Authentication and Authorization Function</span></dt>
+      <dd>核心網裡負責 NSSAA 的網元：依 S-NSSAI 把請求送到對的 AAA 伺服器，並在服務化訊息和 AAA 協定之間轉換（§5.13）。</dd>
+      <dt>AAA-S / AAA-P <span class="term-full">AAA Server / AAA Proxy</span></dt>
+      <dd>實際做認證的 AAA 伺服器（可能屬於第三方企業），以及營運商通往第三方時使用的代理；NSSAAF 和 AAA-P 可以合併部署。</dd>
+      <dt>EAP ID <span class="term-full">UE User ID for EAP authentication</span></dt>
+      <dd>UE 在 NSSAA 中使用的使用者身分，和 SUPI 不同。</dd>
+      <dt>GPSI <span class="term-full">Generic Public Subscription Identifier</span></dt>
+      <dd>用戶的公開識別碼。NSSAAF 把它連同 EAP ID 交給 AAA-S，AAA-S 之後用它來要求重新認證或撤銷授權。</dd>
+      <dt>ENSI <span class="term-full">External Network Slice Information</span></dt>
+      <dd>AAA-S 屬於第三方時，NSSAAF 可以把 S-NSSAI 對應成 ENSI 再送出。</dd>
+    </dl>
+
+    <div class="table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr><th>比較項目</th><th>主要認證（§6.1）</th><th>NSSAA（§16.3）</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>目的</td><td>證明 UE 是合法用戶，取得接入網路的權利</td><td>證明 UE 有權使用某個切片</td></tr>
+          <tr><td>憑證</td><td>3GPP 用戶憑證（SUPI、USIM 中的長期金鑰）</td><td>另一組使用者 ID（EAP ID）與憑證</td></tr>
+          <tr><td>驗證方</td><td>本籍網路的 AUSF／UDM</td><td>AAA-S，可能屬於第三方企業</td></tr>
+          <tr><td>網路端角色</td><td>SEAF 發起認證，AUSF 判定結果</td><td>SEAF／AMF 當 EAP authenticator，經 NSSAAF 和 AAA-S 溝通</td></tr>
+          <tr><td>時機</td><td>先做</td><td>主要認證成功後、Registration Accept 之後才做</td></tr>
+          <tr><td>是否必要</td><td>必要</td><td>選用，只有特定 S-NSSAI 需要</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr><th>誰發起</th><th>程序</th><th>結果</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>AMF（註冊、訂閱資料改變、營運商政策）</td><td>NSSAA（§16.3）</td><td>依 EAP 成功或失敗更新 Allowed／Rejected NSSAI</td></tr>
+          <tr><td>AAA-S</td><td>重新認證與重新授權（§16.4）</td><td>AMF 對該切片重跑 NSSAA</td></tr>
+          <tr><td>AAA-S</td><td>撤銷授權（§16.5）</td><td>AMF 把該切片從 Allowed NSSAI 移到 Rejected NSSAI</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>運作流程</h2>
+    <ol class="flow">
+      <li><span class="actor">UE</span>送出 Registration Request，附上想用的 S-NSSAI 清單；正在進行 NSSAA 的 S-NSSAI 不放進去（§16.2）。</li>
+      <li><span class="actor">AMF / SEAF</span>初始註冊時先做主要認證；後續註冊若已有有效的安全上下文，可以跳過。</li>
+      <li><span class="actor">AMF</span>依本地資訊或 UDM 的訂閱資料，判斷每個 S-NSSAI 要不要做 NSSAA。訂閱資料不要求、之前已成功且結果仍有效、或正在進行中，都可以不做。之後送出 Registration Accept。</li>
+      <li><span class="actor">AMF</span>用 NAS MM Transport 訊息，針對某個 S-NSSAI 向 UE 要 EAP ID；UE 同樣用 NAS MM Transport 回傳 EAP ID 和 S-NSSAI。</li>
+      <li><span class="actor">AMF → NSSAAF</span>送出 Nnssaaf_NSSAA_Authenticate（EAP ID、GPSI、S-NSSAI）。NSSAAF 依 S-NSSAI 找到 AAA-S；AAA-S 屬於第三方時經 AAA-P 轉送，也可以把 S-NSSAI 換成 ENSI。</li>
+      <li><span class="actor">AAA-S</span>把 GPSI 和 EAP ID 關聯起來存好，供日後重新認證或撤銷使用；再用 EAP ID 和 S-NSSAI（或 ENSI）判斷是哪個 UE 要用哪個切片。</li>
+      <li><span class="actor">UE ↔ AAA-S</span>經 AMF 和 NSSAAF 來回交換 EAP 訊息，可能來回好幾輪。最後 EAP-Success 或 Failure 經 NSSAAF、AMF 送回 UE。</li>
+      <li><span class="actor">AMF</span>依結果用 UE Configuration Update 更新 Allowed／Rejected NSSAI。若 NSSAA 沒能完成（例如伺服器錯誤），就在 UE context 中記下狀態，下次 UE 註冊這個切片時重做。</li>
+    </ol>
+
+    <h2>白話解釋</h2>
+    <aside class="plain">
+      <p>把電信網路想成一座科技園區。進園區大門要刷園區識別證（主要認證），這張證由園區管理處發給所有住戶。</p>
+      <p>但園區裡有些公司的辦公室，門口另外有自己的門禁。你得用那家公司發的員工帳號再登入一次（NSSAA），而且是公司自己的伺服器（AAA-S）決定放不放行，園區管理處（AMF、NSSAAF）只負責轉交。公司隨時可以要求你重新刷卡，或直接註銷你的權限，管理處就會把那間辦公室從你的可進入清單中拿掉。</p>
+    </aside>
+
+    <h2>常見考點</h2>
+    <ul class="exam">
+      <li><strong>NSSAA 和主要認證有什麼不同？</strong>NSSAA 是選用的，針對特定 S-NSSAI，在主要認證之後執行。它使用和 3GPP 用戶憑證不同的使用者 ID 與憑證，由可能屬於第三方的 AAA-S 驗證（§16.3）。</li>
+      <li><strong>可以先拿到切片，之後再做主要認證嗎？</strong>不行。被允許的 S-NSSAI 只能在主要認證成功之後才給 UE（§16.2）。</li>
+      <li><strong>NSSAA 裡誰是 EAP authenticator？</strong>SEAF／AMF。它經 NSSAAF 和 AAA-S 溝通，由 NSSAAF 負責 AAA 協定的轉換；第三方的 AAA-S 則經 AAA-P 連接（§16.3）。</li>
+      <li><strong>EAP ID 的隱私怎麼保護？</strong>需要隱私保護時，建議使用具備隱私保護能力的 EAP 方法（§16.3）。</li>
+      <li><strong>AAA-S 憑什麼找到 UE 要求重新認證或撤銷？</strong>首次 NSSAA 時，AAA-S 收到 GPSI 並和 EAP ID 關聯。之後它用 GPSI 發出請求，NSSAAF 再向 UDM 查出服務這個 UE 的 AMF（§16.4、§16.5）。</li>
+      <li><strong>任何 AAA 伺服器都能要求撤銷嗎？</strong>不行。NSSAAF 會依本地設定的「每個 S-NSSAI 對應的 AAA-S 位址」檢查對方是否有權發出請求，通過才處理（§16.4、§16.5）。</li>
+      <li><strong>授權被撤銷後，UE 會怎樣？</strong>AMF 把該 S-NSSAI 從 Allowed NSSAI 移到 Rejected NSSAI。若該接取方式下已沒有任何允許的切片，能給 Default NSSAI 就給，否則由網路發起註銷（§16.5）。</li>
+      <li><strong>UE 從第二種接取方式註冊時，要重做 NSSAA 嗎？</strong>不一定。若 UE 已在第一種接取方式上完成 NSSAA，AMF 可以依網路政策和先前的結果略過（§16.3）。</li>
+      <li><strong>NSSAA 中途失敗（例如伺服器錯誤）怎麼辦？</strong>AMF 在 UE context 中設定該 S-NSSAI 的狀態，下次 UE 要註冊這個切片時就會重新執行 NSSAA（§16.3）。</li>
+    </ul>
+
+    <h2>參考條文</h2>
+    <ul class="refs">
+      <li>TS 33.501 §16：Security procedures for network slices（本頁主題）</li>
+      <li>TS 33.501 §16.2：Authorization for network slice access</li>
+      <li>TS 33.501 §16.3：Network slice specific authentication and authorization</li>
+      <li>TS 33.501 §16.4：AAA Server triggered Network Slice-Specific Re-authentication and Re-authorization procedure</li>
+      <li>TS 33.501 §16.5：AAA Server triggered Slice-Specific Authorization Revocation</li>
+      <li>TS 33.501 §5.13：Requirements on NSSAAF</li>
+      <li>TS 33.501 §14.4.1：NSSAAF 提供的服務（Nnssaaf_NSSAA）</li>
+      <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§5.13、§14.4.1、§16.2–§16.5）；4G 部分<span class="todo">尚未對照原文</span></li>
+    </ul>
+  </main>
+</body>
+</html>
