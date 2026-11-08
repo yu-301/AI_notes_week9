@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>安全演算法選擇與安全模式命令程序（簡報）｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="deck">
+    <section class="slide slide-cover">
+      <span class="topic-clause">§6.7</span>
+      <h1>安全演算法選擇與安全模式命令程序</h1>
+      <p class="topic-summary">網路依營運商的優先順序挑演算法，再用 SMC 一來一回啟動保護，並重播 UE 安全能力來擋降級攻擊。</p>
+    </section>
+
+    <section class="slide">
+      <h2>為什麼需要</h2>
+      <ul>
+        <li>有了金鑰，雙方還得約好用哪個演算法、從哪則訊息開始保護</li>
+        <li>UE 安全能力在未保護的 Registration Request 中送出，可能被竄改</li>
+        <li>中間人刪掉強演算法 → <strong>降級攻擊</strong>（2G 曾受害）</li>
+        <li>SMC 重播安全能力並加完整性保護；分 NAS SMC 與 AS SMC 兩層</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>關鍵名詞</h2>
+      <dl class="terms">
+        <dt>UE 安全能力 <span class="term-full">UE 5G security capabilities</span></dt>
+        <dd>UE 支援的演算法清單</dd>
+        <dt>優先順序清單 <span class="term-full">Prioritized list of allowed algorithms</span></dt>
+        <dd>營運商設定，挑最前面的</dd>
+        <dt>NAS SMC <span class="term-full">NAS Security Mode Command</span></dt>
+        <dd>AMF 選 NAS 演算法</dd>
+        <dt>AS SMC <span class="term-full">AS Security Mode Command</span></dt>
+        <dd>gNB 選 RRC／UP 演算法</dd>
+        <dt>降級攻擊 <span class="term-full">Bidding down attack</span></dt>
+        <dd>逼雙方改用弱演算法</dd>
+      </dl>
+    </section>
+
+    <section class="slide">
+      <h2>NAS SMC 與 AS SMC 比較</h2>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>項目</th><th>NAS SMC</th><th>AS SMC</th></tr></thead>
+          <tbody>
+            <tr><td>兩端</td><td>UE ↔ AMF</td><td>UE ↔ gNB／ng-eNB</td></tr>
+            <tr><td>誰選演算法</td><td>AMF</td><td>gNB（須 UE 也支援）</td></tr>
+            <tr><td>Command</td><td>只做完整性</td><td>只做完整性</td></tr>
+            <tr><td>Complete</td><td>加密 + 完整性</td><td>完整性</td></tr>
+            <tr><td>網路端先開</td><td>上行解密</td><td>下行加密</td></tr>
+            <tr><td>失敗時</td><td>Reject（舊上下文保護或不保護）</td><td>未保護的 failure</td></tr>
+            <tr><td>使用時機</td><td>建立 NAS 安全上下文</td><td>僅 RRC_IDLE → CONNECTED</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（1/3）：NAS SMC</h2>
+      <ol class="flow">
+        <li><span class="actor">UE</span>Registration Request 送出 UE 安全能力（尚未保護）</li>
+        <li><span class="actor">AMF</span>認證後依清單各挑優先順序最高的 NAS 演算法</li>
+        <li><span class="actor">AMF</span>送 NAS SMC：重播安全能力、選定演算法、ngKSI；送出後開上行解密</li>
+        <li><span class="actor">UE</span>比對安全能力、驗證完整性；通過就啟動 NAS 保護，失敗回 Reject</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（2/3）：完成 NAS、轉交 AS</h2>
+      <ol class="flow" start="5">
+        <li><span class="actor">UE</span>回加密 + 完整性的 Complete，可附 PEI、完整初始訊息</li>
+        <li><span class="actor">AMF</span>驗證 Complete 後開始下行加密</li>
+        <li><span class="actor">AMF</span>把 UE 5G 安全能力交給 gNB</li>
+        <li><span class="actor">gNB</span>挑清單最優先、UE 也支援的演算法（RRC 與 UP 共用）</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（3/3）：AS SMC</h2>
+      <ol class="flow" start="9">
+        <li><span class="actor">gNB</span>送 AS SMC（K<sub>gNB</sub> 推出的 RRC 完整性金鑰），送出後開下行加密</li>
+        <li><span class="actor">UE</span>驗證後開下行解密，回 Complete，送出後開上行加密</li>
+        <li><span class="actor">gNB</span>驗證 Complete 後開上行解密；UP 依 UP 安全政策啟用</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>白話解釋</h2>
+      <aside class="plain">
+        <p>你用明信片告訴總務處（AMF）你有哪些鎖，郵差可能偷改。總務處回信時把清單原樣抄回，加上「選這把」並蓋專屬印章；你核對一致才開始上鎖。</p>
+        <p>大樓門禁（基地台）要另外約一次鎖（AS SMC），且只能從總務處轉交的清單裡挑。</p>
+      </aside>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（1/3）</h2>
+      <ul class="exam">
+        <li><strong>NAS SMC 怎麼防降級？</strong>重播 UE 安全能力 + 完整性保護，UE 比對不符就 Reject</li>
+        <li><strong>為什麼 NAS SMC 不加密？</strong>UE 要先讀到演算法和 ngKSI 才知道怎麼解</li>
+        <li><strong>演算法由誰選？</strong>NAS 由 AMF、AS 由 gNB，都依營運商優先順序清單</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（2/3）</h2>
+      <ul class="exam">
+        <li><strong>網路端先開哪個方向？</strong>NAS 先開上行解密；AS 先開下行加密</li>
+        <li><strong>AS SMC 何時用？</strong>只在 RRC_IDLE → CONNECTED、新 K<sub>gNB</sub> 時，PDCP COUNT 可歸零</li>
+        <li><strong>Xn 換手？</strong>目標基地台重選，不同才寫進 Handover Command；AMF 在 Path-Switch 比對安全能力</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（3/3）</h2>
+      <ul class="exam">
+        <li><strong>INACTIVE → CONNECTED 不支援原演算法？</strong>送 RRCSetup 回退，再走 AS SMC</li>
+        <li><strong>何時用 NIA0／NEA0？</strong>LSM 下未認證 UE 的緊急通話；其他情況 UE 不接受 AS 空完整性</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>參考條文</h2>
+      <ul class="refs">
+        <li>TS 33.501 §6.7：Security algorithm selection, key establishment and security mode command procedure（本頁主題）</li>
+        <li>TS 33.501 §6.7.1：Procedures for NAS algorithm selection</li>
+        <li>TS 33.501 §6.7.2：NAS security mode command procedure</li>
+        <li>TS 33.501 §6.7.3：Procedures for AS algorithm selection（含 Xn／N2 換手、RRC_INACTIVE、LSM）</li>
+        <li>TS 33.501 §6.7.4：AS security mode command procedure</li>
+        <li>TS 33.501 §6.6.2：UP security activation mechanism（UP 保護的啟用）</li>
+        <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§6.7.1–§6.7.4）</li>
+      </ul>
+    </section>
+
+    <nav class="deck-bar" aria-label="簡報控制">
+      <a href="../pages/security-mode-command.html">← 回文字版</a>
+      <div class="deck-controls">
+        <button class="deck-prev" type="button">上一張</button>
+        <span class="deck-count" aria-live="polite"></span>
+        <button class="deck-next" type="button">下一張</button>
+      </div>
+    </nav>
+  </main>
+  <script src="../assets/slides.js"></script>
+</body>
+</html>
