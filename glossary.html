@@ -48,6 +48,10 @@
         <dd>讓 USIM 確認考題來自 home network 且不是舊的。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
       </div>
       <div class="term">
+        <dt id="term-drb">DRB <span class="term-full">Data Radio Bearer</span></dt>
+        <dd>空中介面上承載使用者資料的無線承載，UP 保護逐條 DRB 啟用。<a href="pages/up-security.html">出處：使用者平面（UP）安全與完整性保護</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-eap">EAP <span class="term-full">Extensible Authentication Protocol</span></dt>
         <dd>可承載各種認證方法的通用認證框架。<a href="pages/eap-aka-prime.html">出處：EAP-AKA' 認證</a></dd>
       </div>
@@ -88,8 +92,20 @@
         <dd>服務網路的錨點金鑰，認證成功後才交給 SEAF，再推導出 K<sub>AMF</sub>。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
       </div>
       <div class="term">
+        <dt id="term-kupenc">K<sub>UPenc</sub> <span class="term-full">UP encryption key</span></dt>
+        <dd>由 K<sub>gNB</sub> 推出的使用者平面加密金鑰。<a href="pages/up-security.html">出處：使用者平面（UP）安全與完整性保護</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-kupint">K<sub>UPint</sub> <span class="term-full">UP integrity key</span></dt>
+        <dd>由 K<sub>gNB</sub> 推出的使用者平面完整性金鑰。<a href="pages/up-security.html">出處：使用者平面（UP）安全與完整性保護</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-lsm">LSM <span class="term-full">Limited Service Mode</span></dt>
         <dd>受限服務模式；未認證 UE 做緊急通話時只能用空演算法。<a href="pages/security-mode-command.html">出處：安全演算法選擇與安全模式命令程序</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-mac-i">MAC-I <span class="term-full">Message Authentication Code for Integrity</span></dt>
+        <dd>PDCP 封包裡的完整性驗證碼，未啟用 UP 完整性時不放。<a href="pages/up-security.html">出處：使用者平面（UP）安全與完整性保護</a></dd>
       </div>
       <div class="term">
         <dt id="term-nas">NAS <span class="term-full">Non Access Stratum</span></dt>
@@ -120,6 +136,10 @@
         <dd>5G 的完整性演算法，128-NIA1～3；NIA0 為不保護的空演算法。<a href="pages/nas-security.html">出處：NAS 安全機制</a></dd>
       </div>
       <div class="term">
+        <dt id="term-pdcp">PDCP <span class="term-full">Packet Data Convergence Protocol</span></dt>
+        <dd>UE 與基地台間負責 UP 加密與完整性保護的協定層。<a href="pages/up-security.html">出處：使用者平面（UP）安全與完整性保護</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-rand">RAND <span class="term-full">Random Challenge</span></dt>
         <dd>網路出給手機的隨機考題。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
       </div>
@@ -144,6 +164,10 @@
         <dd>選定演算法並啟動安全保護的程序，NAS 與 AS 各有一個。<a href="pages/nas-security.html">出處：NAS 安全機制</a></dd>
       </div>
       <div class="term">
+        <dt id="term-smf">SMF <span class="term-full">Session Management Function</span></dt>
+        <dd>管理 PDU session 的核心網元，負責下達 UP 安全政策。<a href="pages/up-security.html">出處：使用者平面（UP）安全與完整性保護</a></dd>
+      </div>
+      <div class="term">
         <dt id="term-suci">SUCI <span class="term-full">Subscription Concealed Identifier</span></dt>
         <dd>SUPI 加密後的版本，可安全地在空中介面傳送。<a href="pages/suci-supi-concealment.html">出處：SUPI 隱藏與 SUCI</a></dd>
       </div>
@@ -154,6 +178,10 @@
       <div class="term">
         <dt id="term-udm">UDM <span class="term-full">Unified Data Management</span></dt>
         <dd>home network 的用戶資料中心，內含 ARPF 與 SIDF。<a href="pages/5g-aka.html">出處：5G-AKA 認證</a></dd>
+      </div>
+      <div class="term">
+        <dt id="term-up">UP <span class="term-full">User Plane</span></dt>
+        <dd>使用者平面，承載使用者真正傳送的資料。<a href="pages/up-security.html">出處：使用者平面（UP）安全與完整性保護</a></dd>
       </div>
       <!-- TERMS:END -->
     </dl>

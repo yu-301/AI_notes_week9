@@ -48,3 +48,7 @@
 ## [2026-11-08] add | §6.7 安全演算法選擇與安全模式命令程序
 - 新增 pages/security-mode-command.html、slides/security-mode-command.html（依據 sources/3GPP TS 33.501 V18.12.0 (Release 18).docx §6.7.1–§6.7.4）
 - 更新 index.html、glossary.html（新增術語：AS、LSM、RRC）
+
+## [2026-11-08] add | §6.6 使用者平面（UP）安全與完整性保護
+- 新增 pages/up-security.html、slides/up-security.html（依據 sources/3GPP TS 33.501 V18.12.0 (Release 18).docx §5.2.2–§5.2.3、§5.3.2–§5.3.3、§6.6；4G 部分標記待查證）
+- 更新 index.html、glossary.html（新增術語：DRB、KUPenc、KUPint、MAC-I、PDCP、SMF、UP）

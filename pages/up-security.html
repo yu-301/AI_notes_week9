@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>使用者平面（UP）安全與完整性保護｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="wrap topic">
+    <a class="back" href="../index.html">← 回目錄</a>
+
+    <header class="topic-head">
+      <span class="topic-clause">§6.6</span>
+      <h1>使用者平面（UP）安全與完整性保護</h1>
+      <p class="topic-summary">5G 讓使用者資料也能做完整性保護：SMF 依 PDU session 下政策，基地台再逐條 DRB 啟用加密與完整性。</p>
+      <p class="topic-meta">TS 33.501 Rel-18｜更新於 <time datetime="2026-11-08">2026-11-08</time></p>
+      <p class="topic-links"><a href="../slides/up-security.html">看簡報版</a></p>
+    </header>
+
+    <h2>為什麼需要</h2>
+    <p>使用者平面（User Plane，UP）是你真正傳的資料：網頁、影片、DNS 查詢。它在 UE 和基地台之間走空中介面，保護由 PDCP 層負責（§6.6.3、§6.6.4）。只加密能防偷看，但防不了竄改：串流式加密的密文翻一個位元，解密後的明文同一個位置也會跟著翻，攻擊者不需要金鑰就能有目標地改內容。</p>
+    <p>4G（LTE）一般 UE 與 eNB 之間的 UP 只有加密、沒有完整性保護，主要考量是每個封包多一個 MAC 的額外負擔，以及高速率下的運算量。後來的 aLTEr 攻擊就利用這個缺口，竄改加密後的 DNS 請求，把使用者導到惡意伺服器。<span class="todo">待查證</span>（4G 細節出自 TS 33.401 與相關論文，sources/ 尚無這些文件）</p>
+    <p>5G 把 UP 完整性保護變成 UE 和 gNB <strong>都必須支援</strong>的功能，但<strong>要不要用</strong>由網路依每個 PDU session 的 UP 安全政策決定（§5.2.3、§5.3.3、§6.6.1）。</p>
+
+    <h2>關鍵名詞</h2>
+    <dl class="terms">
+      <dt>UP <span class="term-full">User Plane</span></dt>
+      <dd>使用者平面，承載使用者資料；相對的是承載控制訊號的控制平面（RRC、NAS）。</dd>
+      <dt>PDU session <span class="term-full">Protocol Data Unit session</span></dt>
+      <dd>UE 和資料網路之間的一條資料連線，UP 安全政策以它為單位下達。</dd>
+      <dt>DRB <span class="term-full">Data Radio Bearer</span></dt>
+      <dd>空中介面上承載使用者資料的無線承載；一個 PDU session 可以有多條 DRB，加密與完整性逐條 DRB 啟用。</dd>
+      <dt>SMF <span class="term-full">Session Management Function</span></dt>
+      <dd>核心網路中管理 PDU session 的網元，負責把 UP 安全政策交給基地台。</dd>
+      <dt>UP 安全政策 <span class="term-full">UP security policy</span></dt>
+      <dd>SMF 對每個 PDU session 指定 UP 加密、UP 完整性各自要不要啟用。</dd>
+      <dt>PDCP <span class="term-full">Packet Data Convergence Protocol</span></dt>
+      <dd>UE 與基地台之間負責 UP 加密與完整性保護的協定層（TS 38.323）。</dd>
+      <dt>K<sub>UPenc</sub> / K<sub>UPint</sub> <span class="term-full">UP encryption key / UP integrity key</span></dt>
+      <dd>由 K<sub>gNB</sub> 推出的 128-bit UP 加密、完整性金鑰；需要時才產生（見金鑰階層那頁）。</dd>
+      <dt>MAC-I <span class="term-full">Message Authentication Code for Integrity</span></dt>
+      <dd>放在 PDCP 封包裡的完整性驗證碼；沒啟用 UP 完整性時，封包裡不放 MAC-I。</dd>
+    </dl>
+
+    <div class="table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr><th>UP 安全政策的值</th><th>基地台的處理（§6.6.1）</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Required（必須）</td><td>一定要啟用；做不到就拒絕建立該 PDU session 的 UP 資源，並把原因回報 SMF。基地台不得推翻。</td></tr>
+          <tr><td>Preferred（偏好）</td><td>由基地台決定是否啟用；換手後啟用狀態可能改變（§6.6.1 NOTE 2）。</td></tr>
+          <tr><td>Not needed（不需要）</td><td>不啟用，PDU session 照常建立。基地台不得推翻。</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap">
+      <table class="spec-table">
+        <thead>
+          <tr><th>比較項目</th><th>4G（UE ↔ eNB）</th><th>5G（UE ↔ gNB）</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>UP 加密</td><td>有</td><td>必須支援，依 UP 安全政策啟用</td></tr>
+          <tr><td>UP 完整性</td><td>沒有（4G 部分<span class="todo">待查證</span>）</td><td>UE、gNB 都必須支援；依政策啟用，且不得用 NIA0</td></tr>
+          <tr><td>支援速率</td><td>—</td><td>UE 要能在自己支援的最高速率下做 UP 完整性（§5.2.3）</td></tr>
+          <tr><td>啟用單位</td><td>—</td><td>SMF 以 PDU session 下政策，基地台逐條 DRB 啟用</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>運作流程</h2>
+    <ol class="flow">
+      <li><span class="actor">SMF</span>建立 PDU session 時，把該 session 的 UP 安全政策送給 gNB／ng-eNB。漫遊時，拜訪網路的 SMF 可依當地政策覆寫加密選項。</li>
+      <li><span class="actor">gNB</span>判斷能否照政策執行：Required 卻做不到，就拒絕建立 UP 資源並回報 SMF。若是 ng-eNB，只有 UE 表明支援（EIA7 位元）時才能啟用 UP 完整性。</li>
+      <li><span class="actor">gNB</span>確認 AS SMC 已經啟動 RRC 安全（§6.7.4），才進行新增 DRB 的 RRC Connection Reconfiguration。</li>
+      <li><span class="actor">gNB</span>送出 RRC Connection Reconfiguration，逐條 DRB 標示要不要啟用 UP 完整性與加密。手上還沒有 K<sub>UPint</sub>／K<sub>UPenc</sub> 就先推導，然後對那些 DRB 開始保護。</li>
+      <li><span class="actor">UE</span>驗證 RRC 訊息的完整性。成功後，依訊息指示推導還沒有的 K<sub>UPint</sub>／K<sub>UPenc</sub>，對相應 DRB 開始保護。</li>
+      <li><span class="actor">UE</span>回傳 RRC Connection Reconfiguration Complete。</li>
+      <li><span class="actor">UE / gNB</span>啟用完整性的 DRB，每個 PDCP 封包用 NIA、K<sub>UPint</sub> 和 32-bit PDCP COUNT 算出 MAC-I；MAC-I 錯誤或缺少的封包直接丟棄。未啟用的 DRB 不放 MAC-I、不加密。</li>
+      <li><span class="actor">來源 gNB → 目標 gNB → SMF</span>Xn 換手時，來源基地台把 UP 安全政策放進 HANDOVER REQUEST；目標基地台拒絕做不到 Required 的 session。Path-Switch 時 SMF 比對政策，不一致就送回自己存的版本並記錄事件。</li>
+    </ol>
+
+    <h2>白話解釋</h2>
+    <aside class="plain">
+      <p>4G 的使用者資料像裝在不透明信封裡寄送：別人看不到內容，但可以在信封外面用針戳一個洞，對準「第幾個字」把它改掉。收件人拆開只看到被改過的信，卻無從察覺。</p>
+      <p>5G 讓每封信都可以再加一個封口貼紙（MAC-I），被動過就看得出來。不過貼紙要成本，所以由總公司（SMF）依業務決定哪些信件類別（PDU session）一定要貼、哪些可以不貼；郵局（基地台）照規定逐個郵袋（DRB）執行，不能自己改規定。</p>
+    </aside>
+
+    <h2>常見考點</h2>
+    <ul class="exam">
+      <li><strong>為什麼 4G 的使用者平面沒有完整性保護？</strong>當時認為每個封包多一個 MAC 的額外負擔和高速率下的運算量太大，所以 UP 只做加密。但加密不等於防竄改：串流式加密的密文可被逐位元翻轉，aLTEr 就藉此竄改 DNS 請求。<span class="todo">待查證</span>（4G 細節，sources/ 尚無 TS 33.401）</li>
+      <li><strong>5G 改成怎樣？</strong>UE 和 gNB 都必須支援 UP 完整性與重放保護，UE 還要能在自己的最高速率下執行（§5.2.3、§5.3.3）。是否啟用則由 SMF 以 PDU session 為單位的 UP 安全政策決定，基地台逐條 DRB 啟用（§6.6.1）。</li>
+      <li><strong>UP 完整性既然是必須支援，為什麼不是必須使用？</strong>它會加大封包、增加 UE 與 gNB 的運算負擔，所以「使用」是選用的，交給政策決定（§5.3.3 NOTE）。</li>
+      <li><strong>UP 完整性可以選 NIA0 嗎？</strong>不行。NIA0 只會多加 32-bit 的 MAC，卻沒有任何安全效果（§5.3.3）。</li>
+      <li><strong>政策是 Required，基地台卻做不到怎麼辦？</strong>拒絕建立該 PDU session 的 UP 資源並回報原因給 SMF。Required 與 Not needed 都不得被基地台推翻（§6.6.1）。</li>
+      <li><strong>UP 安全什麼時候啟動？</strong>必須等 AS SMC 啟動 RRC 安全後，才在新增 DRB 的 RRC Connection Reconfiguration 中逐條 DRB 啟用（§6.6.2）。</li>
+      <li><strong>換手時怎麼防止 UP 安全政策被竄改？</strong>Xn 換手的 Path-Switch 中，SMF 比對目標基地台送來的政策和自己存的；不一致就送回正確版本並記錄，目標基地台再用 intra-cell handover 重設 DRB（§6.6.1）。</li>
+      <li><strong>LTE 基地台接到 5GC（ng-eNB）時能做 UP 完整性嗎？</strong>可以，但只有 UE 在 5G UE 安全能力中設定 EIA7 位元，表示支援時才行；ng-eNB 可選用 128-NIA 或 128-EIA（§6.6.4.3）。</li>
+    </ul>
+
+    <h2>參考條文</h2>
+    <ul class="refs">
+      <li>TS 33.501 §6.6：UP security mechanisms（本頁主題）</li>
+      <li>TS 33.501 §6.6.1：UP security policy</li>
+      <li>TS 33.501 §6.6.2：UP security activation mechanism</li>
+      <li>TS 33.501 §6.6.3、§6.6.4：UP confidentiality／integrity mechanisms</li>
+      <li>TS 33.501 §5.2.3、§5.3.3：UE 與 gNB 的 user data and signalling data integrity 要求</li>
+      <li>TS 33.501 §6.7.4：AS security mode command procedure</li>
+      <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§5.2.2–§5.2.3、§5.3.2–§5.3.3、§6.6）；4G 部分<span class="todo">尚未對照原文</span></li>
+    </ul>
+  </main>
+</body>
+</html>
