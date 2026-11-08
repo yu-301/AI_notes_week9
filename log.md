@@ -52,3 +52,7 @@
 ## [2026-11-08] add | §6.6 使用者平面（UP）安全與完整性保護
 - 新增 pages/up-security.html、slides/up-security.html（依據 sources/3GPP TS 33.501 V18.12.0 (Release 18).docx §5.2.2–§5.2.3、§5.3.2–§5.3.3、§6.6；4G 部分標記待查證）
 - 更新 index.html、glossary.html（新增術語：DRB、KUPenc、KUPint、MAC-I、PDCP、SMF、UP）
+
+## [2026-11-08] add | §6.9 換手時的安全處理與金鑰推導
+- 新增 pages/handover-security.html、slides/handover-security.html（依據 sources/3GPP TS 33.501 V18.12.0 (Release 18).docx §6.9.2、§6.9.3、Annex A.10–A.13；4G 部分標記待查證）
+- 更新 index.html、glossary.html（新增術語：KNG-RAN*、NASC、NCC、PCI）

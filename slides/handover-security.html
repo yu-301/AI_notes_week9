@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>換手時的安全處理與金鑰推導（簡報）｜5G 安全筆記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <main class="deck">
+    <section class="slide slide-cover">
+      <span class="topic-clause">§6.9</span>
+      <h1>換手時的安全處理與金鑰推導</h1>
+      <p class="topic-summary">換手時從目前金鑰（水平）或 AMF 的 NH（垂直）推出新金鑰，靠 NCC 同步；垂直推導讓舊基地台算不出新金鑰。</p>
+    </section>
+
+    <section class="slide">
+      <h2>為什麼需要</h2>
+      <ul>
+        <li>換基地台時要決定新 K<sub>gNB</sub>，又不能每次重新認證</li>
+        <li>新舊共用金鑰：攻破一台，之後經過的基地台全曝光</li>
+        <li>目標：舊基地台算不出新金鑰 → <strong>前向安全</strong></li>
+        <li>5G 換手會同步 NAS 與 AS 上下文，這點與 4G（EPS）不同</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>關鍵名詞</h2>
+      <dl class="terms">
+        <dt>K<sub>NG-RAN</sub>* <span class="term-full">Key for target NG-RAN node</span></dt>
+        <dd>換手後的新 K<sub>gNB</sub></dd>
+        <dt>NH <span class="term-full">Next Hop</span></dt>
+        <dd>只有 UE、AMF 算得出的鏈</dd>
+        <dt>NCC <span class="term-full">Next hop Chaining Counter</span></dt>
+        <dd>NH 鏈的編號</dd>
+        <dt>水平推導 <span class="term-full">Horizontal key derivation</span></dt>
+        <dd>從目前 K<sub>gNB</sub> 推</dd>
+        <dt>垂直推導 <span class="term-full">Vertical key derivation</span></dt>
+        <dd>從 AMF 給的 NH 推</dd>
+      </dl>
+    </section>
+
+    <section class="slide">
+      <h2>水平 vs 垂直金鑰推導</h2>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>項目</th><th>水平</th><th>垂直</th></tr></thead>
+          <tbody>
+            <tr><td>從哪推</td><td>目前 K<sub>gNB</sub></td><td>未使用的 NH</td></tr>
+            <tr><td>原料來源</td><td>來源基地台自己有</td><td>AMF 提供</td></tr>
+            <tr><td>NCC</td><td>不變</td><td>變大，UE 追算 NH</td></tr>
+            <tr><td>何時用</td><td>沒有未使用的 {NH, NCC}</td><td>有未使用的 NH；N2 一律由 AMF 給新 NH</td></tr>
+            <tr><td>都要綁定</td><td colspan="2">目標 PCI 與 ARFCN-DL</td></tr>
+            <tr><td>前向安全</td><td>沒有</td><td>有</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>三種換手的比較</h2>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>類型</th><th>誰算 K<sub>NG-RAN</sub>*</th><th>新 {NH, NCC} 來源</th></tr></thead>
+          <tbody>
+            <tr><td>Intra-gNB-CU</td><td>同一 gNB，可依政策保留</td><td>有 NH 就垂直，否則水平</td></tr>
+            <tr><td>Xn</td><td>來源基地台</td><td>Path Switch Ack，留給下次用</td></tr>
+            <tr><td>N2</td><td>目標基地台</td><td>AMF 收到 HANDOVER REQUIRED 就算</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（1/3）：初始與 Xn 換手</h2>
+      <ol class="flow">
+        <li><span class="actor">AMF / UE</span>推出 K<sub>gNB</sub>（NCC=0）與 NH（NCC=1）；AMF 不把 NH 給 gNB</li>
+        <li><span class="actor">來源 gNB</span>有未使用 NH 就垂直，否則水平，綁 PCI、ARFCN-DL</li>
+        <li><span class="actor">來源 → 目標 gNB</span>交出 {K<sub>NG-RAN</sub>*, NCC}，NCC 放進 HO Command</li>
+        <li><span class="actor">UE</span>NCC 相同做水平；不同就追算 NH 後做垂直</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（2/3）：Path Switch 與 N2</h2>
+      <ol class="flow" start="5">
+        <li><span class="actor">AMF</span>Path Switch 時 NCC+1、算新 NH 給目標基地台，留給下次</li>
+        <li><span class="actor">來源 AMF</span>N2：收到 HANDOVER REQUIRED 就算新 NH，可選水平 K<sub>AMF</sub> 推導</li>
+        <li><span class="actor">目標 AMF</span>K<sub>AMF</sub> 或演算法有變，就建立帶 NAS MAC 的 NASC</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>運作流程（3/3）：N2 收尾</h2>
+      <ol class="flow" start="8">
+        <li><span class="actor">目標 gNB</span>用 NH + PCI、ARFCN-DL 算新 K<sub>gNB</sub>，NCC 與 NASC 放進 HO Command</li>
+        <li><span class="actor">UE</span>驗證 NASC；旗標為 1 就換新 K<sub>AMF</sub>，失敗就中止換手</li>
+      </ol>
+    </section>
+
+    <section class="slide">
+      <h2>白話解釋</h2>
+      <aside class="plain">
+        <p>水平推導像櫃台用你現在的房卡加新房號直接做新卡：很快，但舊櫃台也做得出來。</p>
+        <p>垂直推導像總公司（AMF）先寄新母卡（NH）給下一間分館，舊分館沒看過母卡就進不了你的新房間；NCC 是母卡的流水號。</p>
+      </aside>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（1/3）</h2>
+      <ul class="exam">
+        <li><strong>水平與垂直差在哪？</strong>水平用目前 K<sub>gNB</sub>、無前向安全；垂直用 NH、有前向安全</li>
+        <li><strong>第一次 Xn 換手為何是水平？</strong>初始建立時 AMF 不給 NH</li>
+        <li><strong>Xn 為何兩跳才有前向安全？</strong>新 NH 在 Path Switch Ack 才到，只能下次用</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（2/3）</h2>
+      <ul class="exam">
+        <li><strong>N2 換手呢？</strong>AMF 先算新 NH 直接給目標，來源基地台拿不到</li>
+        <li><strong>UE 怎麼選？</strong>比對 NCC：相同水平，不同追算 NH 後垂直</li>
+        <li><strong>水平 K<sub>AMF</sub> 推導 = AS 水平推導？</strong>不是；前者在 NAS 層換 K<sub>AMF</sub></li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>常見考點（3/3）</h2>
+      <ul class="exam">
+        <li><strong>NASC 的 COUNT 為何用 2<sup>32</sup>−1？</strong>不在正常範圍，避免重複</li>
+        <li><strong>何時可不換 K<sub>gNB</sub>？</strong>只有 intra-gNB-CU 換手，依 gNB 政策</li>
+        <li><strong>移動註冊更新怎麼換 K<sub>AMF</sub>？</strong>來源 AMF 水平推導，目標 AMF 用 NAS SMC 帶旗標</li>
+      </ul>
+    </section>
+
+    <section class="slide">
+      <h2>參考條文</h2>
+      <ul class="refs">
+        <li>TS 33.501 §6.9：Security handling in mobility（本頁主題）</li>
+        <li>TS 33.501 §6.9.2.1：Key handling in handover — General（金鑰鏈模型）</li>
+        <li>TS 33.501 §6.9.2.3：Key derivations during handover（intra-gNB-CU、Xn、N2、UE handling）</li>
+        <li>TS 33.501 §6.9.3：Key handling in mobility registration update</li>
+        <li>TS 33.501 Annex A.10：NH derivation function</li>
+        <li>TS 33.501 Annex A.11、A.12：K<sub>NG-RAN</sub>* derivation function for target gNB／ng-eNB</li>
+        <li>TS 33.501 Annex A.13：K<sub>AMF</sub> to K<sub>AMF</sub>' derivation in mobility</li>
+        <li>依據來源：sources/3GPP TS 33.501 V18.12.0 (Release 18).docx（§6.9.2、§6.9.3、Annex A.10–A.13）；4G 部分<span class="todo">尚未對照原文</span></li>
+      </ul>
+    </section>
+
+    <nav class="deck-bar" aria-label="簡報控制">
+      <a href="../pages/handover-security.html">← 回文字版</a>
+      <div class="deck-controls">
+        <button class="deck-prev" type="button">上一張</button>
+        <span class="deck-count" aria-live="polite"></span>
+        <button class="deck-next" type="button">下一張</button>
+      </div>
+    </nav>
+  </main>
+  <script src="../assets/slides.js"></script>
+</body>
+</html>
